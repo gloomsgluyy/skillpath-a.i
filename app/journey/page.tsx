@@ -2,216 +2,266 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSearchParams } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
+import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Circle, Flame, Trophy, Calendar, ChevronRight, Zap, Target, Award } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import { PlayCircle, CheckCircle2, Lock, Flame, Trophy, Star, BookOpen, MessageSquare, Plus, Check } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const TASKS = [
-  { id: 1, title: "Konfigurasi OpenStack Controller", time: "45 Menit", done: true },
-  { id: 2, title: "Implementasi IAM Policies", time: "30 Menit", done: true },
-  { id: 3, title: "Setup VPC Peering", time: "1 Jam", done: false },
-  { id: 4, title: "Pelajari Dasar Terraform", time: "40 Menit", done: false },
-  { id: 5, title: "Review Cloud Architecture", time: "20 Menit", done: false },
-];
+interface Task {
+  id: string;
+  day: number;
+  title: string;
+  estimatedMinutes: number;
+  completed: boolean;
+}
 
-export default function LearningJourney() {
-  const [taskList, setTaskList] = useState(TASKS);
-  const [streak, setStreak] = useState(12);
+export default function LearningJourneyPage() {
+  const searchParams = useSearchParams();
+  const [topic, setTopic] = useState("Dasar Cloud Computing");
+  const [tasks, setTasks] = useState<Task[]>([
+    { id: 't1', day: 1, title: 'Tonton Pengenalan Cloud Platform', estimatedMinutes: 30, completed: true },
+    { id: 't2', day: 2, title: 'Buat akun AWS & Setup Billing Alarm', estimatedMinutes: 45, completed: false },
+    { id: 't3', day: 3, title: 'Deploy EC2 Instance Linux', estimatedMinutes: 60, completed: false },
+    { id: 't4', day: 4, title: 'Konfigurasi Security Group', estimatedMinutes: 40, completed: false },
+    { id: 't5', day: 5, title: 'Study Case: Web Server Sederhana', estimatedMinutes: 90, completed: false },
+    { id: 't6', day: 6, title: 'Review & Quiz Akhir Minggu', estimatedMinutes: 30, completed: false },
+    { id: 't7', day: 7, title: 'Proyek Mini: Host HTML Statis di S3', estimatedMinutes: 120, completed: false },
+  ]);
 
-  const completedCount = taskList.filter(t => t.done).length;
-  const progress = (completedCount / taskList.length) * 100;
+  const [aiLoading, setAiLoading] = useState(false);
+  const [streak, setStreak] = useState(3);
+  const completedCount = tasks.filter(t => t.completed).length;
+  const progressPercent = (completedCount / tasks.length) * 100;
 
-  const toggleTask = (id: number) => {
-    const newList = taskList.map(t => {
+  useEffect(() => {
+    // In a full implementation, we would call /api/generate-journey here 
+    // to dynamically generate tasks based on a specific node from Skill Paths.
+    const customTopic = searchParams.get('topic');
+    if (customTopic) {
+      setTopic(customTopic);
+    }
+  }, [searchParams]);
+
+  const toggleTask = (id: string) => {
+    setTasks(prev => prev.map(t => {
       if (t.id === id) {
-        if (!t.done && completedCount === taskList.length - 1) {
-          triggerConfetti();
-        }
-        return { ...t, done: !t.done };
+        if (!t.completed && streak < 4) setStreak(s => s + 1); // Reward interaction
+        return { ...t, completed: !t.completed };
       }
       return t;
-    });
-    setTaskList(newList);
-  };
-
-  const triggerConfetti = () => {
-    confetti({
-      particleCount: 150,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#8B2252', '#F5A623', '#FFD700']
-    });
+    }));
   };
 
   return (
-    <div className="relative min-h-screen">
+    <div className="min-h-screen bg-[#0a0514] text-white pt-24 pb-12 overflow-x-hidden relative">
       <Navbar />
 
-      <main className="pt-32 pb-20 px-6 max-w-7xl mx-auto">
+      {/* Decorative Blur Backgrounds */}
+      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#5D1636]/30 rounded-full blur-[120px] pointer-events-none" />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#feb47b]/10 rounded-full blur-[120px] pointer-events-none" />
+
+      <main className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
+        
+        {/* Header */}
+        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+           <div>
+              <div className="flex items-center gap-3 mb-3">
+                 <span className="px-3 py-1 rounded-full bg-white/10 text-white/70 text-xs font-bold uppercase tracking-widest border border-white/20">Roadmap Terkini</span>
+                 <div className="flex items-center gap-1.5 text-orange-400 bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20 text-xs font-bold shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+                    <Flame size={14} className="fill-current" />
+                    {streak} Hari Streak!
+                 </div>
+              </div>
+              <h1 className="text-4xl md:text-5xl font-display font-black tracking-tight">{topic}</h1>
+           </div>
+           
+           <div className="flex-shrink-0 w-full md:w-64">
+              <div className="flex justify-between text-sm font-bold mb-2">
+                 <span>Progress Modul</span>
+                 <span className="text-[#feb47b]">{Math.round(progressPercent)}%</span>
+              </div>
+              <Progress value={progressPercent} className="h-3 bg-white/10 [&>div]:bg-gradient-to-r [&>div]:from-[#ff7e5f] [&>div]:to-[#feb47b] shadow-inner" />
+           </div>
+        </div>
+
+        {/* 3-Column Dashboard */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Left Column: Stats & Motivation (4 cols) */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="glass p-8 rounded-[2rem] flex flex-col items-center text-center">
-               <h3 className="font-display font-bold text-sm uppercase tracking-[0.2em] text-muted-foreground mb-8">Progress Belajar</h3>
-               
-               {/* Radial Progress Ring */}
-               <div className="relative w-48 h-48 mb-6">
-                  <svg className="w-full h-full -rotate-90">
-                     <circle 
-                        cx="96" cy="96" r="80" 
-                        stroke="rgba(0,0,0,0.05)" 
-                        strokeWidth="12" 
-                        fill="none" 
-                     />
-                     <motion.circle 
-                        initial={{ strokeDashoffset: 502 }}
-                        animate={{ strokeDashoffset: 502 - (502 * progress) / 100 }}
-                        transition={{ duration: 1, ease: "easeOut" }}
-                        cx="96" cy="96" r="80" 
-                        stroke="url(#progressGradient)" 
-                        strokeWidth="12" 
-                        strokeLinecap="round" 
-                        fill="none" 
-                        strokeDasharray="502"
-                     />
-                     <defs>
-                        <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                           <stop offset="0%" stopColor="var(--sp-accent-orange)" />
-                           <stop offset="100%" stopColor="var(--sp-accent-gold)" />
-                        </linearGradient>
-                     </defs>
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                     <span className="text-5xl font-display font-black text-foreground">{Math.round(progress)}%</span>
-                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Selesai</span>
-                  </div>
-               </div>
-
-               <div className="grid grid-cols-2 gap-4 w-full">
-                  <div className="bg-white/40 p-4 rounded-2xl border border-white/60">
-                     <div className="flex items-center justify-center gap-2 text-sp-accent-orange mb-1">
-                        <Flame size={16} className="animate-pulse" />
-                        <span className="text-lg font-black">{streak}</span>
-                     </div>
-                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Day Streak</p>
-                  </div>
-                  <div className="bg-white/40 p-4 rounded-2xl border border-white/60">
-                     <div className="flex items-center justify-center gap-2 text-primary mb-1">
-                        <Zap size={16} />
-                        <span className="text-lg font-black">{completedCount}/{taskList.length}</span>
-                     </div>
-                     <p className="text-[10px] font-bold text-muted-foreground uppercase">Tasks Done</p>
-                  </div>
-               </div>
-            </div>
-
-            <div className="glass p-6 rounded-[2rem] flex items-center gap-4 group cursor-pointer hover:bg-white/60 transition-all">
-               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white shadow-lg group-hover:rotate-12 transition-transform">
-                  <Trophy size={28} />
-               </div>
-               <div className="flex-1">
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Badge Saat Ini</p>
-                  <h4 className="font-display font-bold text-lg">Junior Infrastructure Architect</h4>
-               </div>
-               <ChevronRight className="text-muted-foreground group-hover:translate-x-1 transition-transform" />
-            </div>
-          </div>
-
-          {/* Center Column: Tasks Dashboard (5 cols) */}
-          <div className="lg:col-span-5 space-y-6">
-            <div className="flex justify-between items-center mb-2 px-2">
-               <h2 className="text-2xl font-display font-black">Tugas Hari Ini</h2>
-               <span className="text-xs font-bold text-muted-foreground bg-muted px-3 py-1 rounded-full">Kamis, 13 Maret 2026</span>
-            </div>
-
-            <div className="space-y-4">
-               {taskList.map((task) => (
-                  <motion.div
-                     key={task.id}
-                     layout
-                     onClick={() => toggleTask(task.id)}
-                     className={cn(
-                        "glass p-5 rounded-2xl flex items-center gap-4 cursor-pointer group transition-all",
-                        task.done ? "opacity-60 bg-white/20" : "hover:bg-white/60"
-                     )}
-                  >
-                     <div className={cn(
-                        "w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all",
-                        task.done ? "bg-primary border-primary text-white scale-110" : "border-muted-foreground/30 group-hover:border-primary/50"
-                     )}>
-                        {task.done ? <CheckCircle2 size={16} /> : <Circle size={16} className="text-transparent" />}
-                     </div>
-                     <div className="flex-1">
-                        <h4 className={cn("font-bold text-sm transition-all", task.done && "line-through text-muted-foreground")}>
-                           {task.title}
-                        </h4>
-                     </div>
-                     <span className="text-[10px] font-bold px-2 py-1 bg-primary/10 text-primary rounded-lg">
-                        {task.time}
-                     </span>
-                  </motion.div>
-               ))}
-               
-               {completedCount === taskList.length && (
-                  <motion.div
-                     initial={{ opacity: 0, scale: 0.9 }}
-                     animate={{ opacity: 1, scale: 1 }}
-                     className="p-10 flex flex-col items-center text-center text-muted-foreground"
-                  >
-                     <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 mb-4">
-                        <CheckCircle2 size={32} />
-                     </div>
-                     <p className="text-sm font-bold">Semua tugas selesai! Kamu luar biasa.</p>
-                  </motion.div>
-               )}
-            </div>
-          </div>
-
-          {/* Right Column: Calendar & Rewards (3 cols) */}
+          {/* Left Column: Progress & Mentorship (3 cols) */}
           <div className="lg:col-span-3 space-y-6">
-            <div className="glass p-6 rounded-[2rem]">
-               <h4 className="font-display font-bold text-xs uppercase tracking-widest text-muted-foreground mb-6 flex items-center gap-2">
-                  <Calendar size={14} /> Roadmap Timeline
-               </h4>
-               <div className="space-y-6 relative ml-2">
-                  <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-muted shadow-inner" />
-                  {[
-                     { label: "Minggu 1: OS Core", status: "done" },
-                     { label: "Minggu 2: Network", status: "active" },
-                     { label: "Minggu 3: Docker", status: "todo" },
-                     { label: "Minggu 4: CI/CD", status: "todo" },
-                  ].map((m, i) => (
-                     <div key={i} className="flex items-center gap-4 relative">
-                        <div className={cn(
-                           "w-4 h-4 rounded-full border-2 z-10",
-                           m.status === 'done' ? "bg-primary border-primary" : 
-                           m.status === 'active' ? "bg-white border-primary animate-pulse" : 
-                           "bg-white border-muted-foreground/30"
-                        )} />
-                        <span className={cn(
-                           "text-xs font-bold transition-colors",
-                           m.status === 'active' ? "text-primary" : "text-muted-foreground"
-                        )}>{m.label}</span>
-                     </div>
-                  ))}
-               </div>
-            </div>
+             {/* Profile/Stats Card */}
+             <div className="glass p-6 rounded-3xl border border-white/10 shadow-xl bg-white/5 backdrop-blur-xl">
+                <div className="flex items-center gap-4 mb-6 relative">
+                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-0.5 shadow-lg shadow-indigo-500/20">
+                      <div className="w-full h-full bg-[#0a0514] rounded-[14px] flex items-center justify-center font-black text-2xl">
+                         U
+                      </div>
+                   </div>
+                   <div>
+                      <h3 className="font-bold text-lg leading-tight">User Explorer</h3>
+                      <p className="text-xs text-white/50 tracking-widest uppercase mt-1">Level 4 Novice</p>
+                   </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                   <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center">
+                      <Star className="text-amber-400 mb-1" size={20} />
+                      <span className="font-black text-xl">1250</span>
+                      <span className="text-[10px] text-white/50 uppercase tracking-widest">XP points</span>
+                   </div>
+                   <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center">
+                      <CheckCircle2 className="text-emerald-400 mb-1" size={20} />
+                      <span className="font-black text-xl">{completedCount}</span>
+                      <span className="text-[10px] text-white/50 uppercase tracking-widest">Selesai</span>
+                   </div>
+                </div>
+             </div>
 
-            <div className="glass p-6 rounded-[2rem] bg-gradient-to-br from-primary/10 to-transparent border-primary/20">
-               <h4 className="font-display font-bold text-xs uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
-                  <Award size={14} /> Next Milestone
-               </h4>
-               <p className="text-xs mb-4 text-muted-foreground leading-relaxed">
-                  Selesaikan 5 tugas lagi untuk mendapatkan sertifikat <strong>Linux Expert</strong>.
-               </p>
-               <div className="flex items-center gap-2 p-3 bg-white/40 rounded-xl border border-white/60">
-                  <Target size={16} className="text-sp-accent-gold" />
-                  <span className="text-[10px] font-bold">5 Tasks to go</span>
-               </div>
-            </div>
+             {/* Mini AI Motivator */}
+             <div className="glass p-5 rounded-3xl border border-emerald-500/20 shadow-lg shadow-emerald-500/5 bg-gradient-to-br from-emerald-500/10 to-transparent">
+                <div className="flex items-center gap-3 mb-4">
+                   <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 relative">
+                      <MessageSquare size={18} />
+                      <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0a0514]" />
+                   </div>
+                   <h4 className="font-bold text-sm">AI Motivator</h4>
+                </div>
+                <p className="text-sm text-emerald-100/80 italic leading-relaxed font-medium">
+                  "{streak > 2 ? 'Luar biasa! Konsistensimu membangun fondasi masa depan. Terus pertahankan api belajarmu hari ini!' : 'Ayo mulai langkah pertamamu hari ini. Setiap task kecil membawamu lebih dekat ke tujuan.'}"
+                </p>
+             </div>
+          </div>
+
+          {/* Center Column: The Journey Track (6 cols) */}
+          <div className="lg:col-span-6">
+             <div className="glass p-6 md:p-8 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl relative overflow-hidden min-h-[600px]">
+                {/* Decorative Line background */}
+                <div className="absolute left-10 md:left-14 top-10 bottom-10 w-0.5 bg-white/10" />
+
+                <div className="flex justify-between items-center mb-8 relative z-10 pl-2">
+                   <h2 className="text-2xl font-black font-display">Misi Harian (7 Hari)</h2>
+                   <Button variant="ghost" size="sm" className="text-xs uppercase tracking-widest font-bold text-white/50 hover:text-white">
+                      Lihat Semua
+                   </Button>
+                </div>
+
+                <div className="space-y-6 relative z-10">
+                   {tasks.map((task, idx) => (
+                      <motion.div 
+                         initial={{ opacity: 0, x: -20 }}
+                         animate={{ opacity: 1, x: 0 }}
+                         transition={{ delay: idx * 0.1 }}
+                         key={task.id} 
+                         onClick={() => toggleTask(task.id)}
+                         className={cn(
+                            "flex items-center gap-5 md:gap-6 p-4 rounded-2xl cursor-pointer transition-all duration-300 group",
+                            task.completed ? "bg-white/5 border border-white/10" : "bg-white/10 border border-white/20 hover:bg-white/15 hover:-translate-y-1 shadow-lg hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)]"
+                         )}
+                      >
+                         {/* Circle/Check */}
+                         <div className={cn(
+                            "w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-all duration-500",
+                            task.completed 
+                               ? "bg-gradient-to-br from-emerald-400 to-teal-500 shadow-[0_0_20px_rgba(52,211,153,0.4)]" 
+                               : "bg-[#0a0514] border-2 border-white/30 group-hover:border-[#feb47b]"
+                         )}>
+                            {task.completed 
+                               ? <Check size={24} className="text-[#0a0514] font-black" /> 
+                               : <span className="font-black text-white/50 group-hover:text-[#feb47b]">H{task.day}</span>
+                            }
+                         </div>
+
+                         {/* Content */}
+                         <div className="flex-1">
+                            <h3 className={cn(
+                               "font-bold text-lg md:text-xl leading-tight transition-colors duration-300",
+                               task.completed ? "text-white/40 line-through" : "text-white group-hover:text-[#feb47b]"
+                            )}>
+                               {task.title}
+                            </h3>
+                            <div className="flex items-center gap-3 mt-2">
+                               <span className={cn(
+                                  "text-xs font-bold uppercase tracking-widest flex items-center gap-1.5",
+                                  task.completed ? "text-white/30" : "text-[#feb47b]"
+                               )}>
+                                  <PlayCircle size={14} /> {task.estimatedMinutes} Menit
+                               </span>
+                            </div>
+                         </div>
+                      </motion.div>
+                   ))}
+                </div>
+             </div>
+          </div>
+
+          {/* Right Column: Resources & Rewards (3 cols) */}
+          <div className="lg:col-span-3 space-y-6">
+             {/* Recommended Resources (Video Thumbs) */}
+             <div className="glass p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl">
+                <h3 className="font-bold text-sm tracking-widest uppercase text-white/70 mb-5 flex items-center gap-2">
+                   <BookOpen size={16} /> Referensi Belajar
+                </h3>
+                <div className="space-y-4">
+                   <div className="relative group cursor-pointer overflow-hidden rounded-2xl border border-white/10">
+                      <div className="w-full h-28 bg-gradient-to-br from-slate-800 to-slate-900 group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                         <PlayCircle size={32} className="text-white opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all drop-shadow-lg" />
+                      </div>
+                      <div className="absolute bottom-2 left-3 right-2">
+                         <span className="text-[10px] font-bold bg-black/60 px-2 py-0.5 rounded text-white backdrop-blur-sm">Video 12:45</span>
+                         <p className="text-xs font-bold mt-1 text-white truncate drop-shadow-md">AWS Architecture 101</p>
+                      </div>
+                   </div>
+                   
+                   <div className="relative group cursor-pointer overflow-hidden rounded-2xl border border-white/10">
+                      <div className="w-full h-28 bg-gradient-to-br from-indigo-900 to-slate-900 group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                         <PlayCircle size={32} className="text-white opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all drop-shadow-lg" />
+                      </div>
+                      <div className="absolute bottom-2 left-3 right-2">
+                         <span className="text-[10px] font-bold bg-black/60 px-2 py-0.5 rounded text-white backdrop-blur-sm">Video 28:10</span>
+                         <p className="text-xs font-bold mt-1 text-white truncate drop-shadow-md">Setup Security Groups</p>
+                      </div>
+                   </div>
+                </div>
+             </div>
+
+             {/* Rewards / Badges */}
+             <div className="glass p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl">
+                <h3 className="font-bold text-sm tracking-widest uppercase text-white/70 mb-5 flex items-center gap-2">
+                   <Trophy size={16} /> Progress Milestone
+                </h3>
+                <TooltipProvider>
+                   <div className="grid grid-cols-2 gap-4">
+                      <Tooltip>
+                         <TooltipTrigger asChild>
+                            <div className="aspect-square rounded-2xl bg-gradient-to-br from-[#5D1636] to-slate-900 border border-[#feb47b]/30 flex flex-col items-center justify-center p-3 cursor-pointer shadow-[0_0_15px_rgba(254,180,123,0.1)] hover:shadow-[0_0_20px_rgba(254,180,123,0.3)] transition-all">
+                               <Sparkles className="text-[#feb47b] mb-2" size={28} />
+                               <span className="text-[10px] font-bold text-center leading-tight">First Cloud Instance</span>
+                            </div>
+                         </TooltipTrigger>
+                         <TooltipContent side="top" className="bg-white text-slate-900 font-bold border-none shadow-xl">
+                            <p>Selesaikan Task 3 untuk mengklaim badge (Terkunci)</p>
+                         </TooltipContent>
+                      </Tooltip>
+
+                      <Tooltip>
+                         <TooltipTrigger asChild>
+                            <div className="aspect-square rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center p-3 cursor-pointer opacity-50 hover:opacity-100 transition-opacity grayscale">
+                               <Lock className="text-white/50 mb-2" size={28} />
+                               <span className="text-[10px] font-bold text-center leading-tight">Mastering Cloud</span>
+                            </div>
+                         </TooltipTrigger>
+                         <TooltipContent side="top" className="bg-slate-800 text-white font-bold border-white/20 shadow-xl">
+                            <p>Selesaikan semua task minggu ini</p>
+                         </TooltipContent>
+                      </Tooltip>
+                   </div>
+                </TooltipProvider>
+             </div>
           </div>
 
         </div>

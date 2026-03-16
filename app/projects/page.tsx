@@ -4,184 +4,295 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { CardTilt, CardTiltContent } from '@/components/ui/card-tilt';
 import { cn } from '@/lib/utils';
-import { LayoutGrid, Users, Clock, ArrowUpRight, Filter, Search, Code, Palette, Globe, Shield } from 'lucide-react';
+import { Briefcase, Link as LinkIcon, Sparkles, Star, Plus, ShieldCheck, Code, ArrowUpRight, CheckCircle2, Bot } from 'lucide-react';
 
-const PROJECTS = [
+interface Project {
+  id: string;
+  title: string;
+  category: string;
+  thumbnail: string;
+  score: number;
+  skills: string[];
+  feedback?: string;
+}
+
+const MOCK_PROJECTS: Project[] = [
   {
-    title: "E-Commerce Cloud Deploy",
-    category: "Cloud",
-    difficulty: "Advanced",
-    duration: "4 Minggu",
-    team: "3-5 Orang",
-    match: "98%",
-    image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop",
-    icon: <Globe size={20} />
+    id: "p1",
+    title: "E-Commerce Microservices",
+    category: "Backend",
+    thumbnail: "bg-gradient-to-br from-indigo-500 to-purple-600",
+    score: 92,
+    skills: ["Docker", "Node.js", "Redis"],
+    feedback: "Struktur arsitektur sangat solid. Penggunaan Redis untuk caching keranjang belanja sangat tepat saar traffic tinggi. Disarankan menambah circuit breaker untuk ketahanan."
   },
   {
-    title: "Bank Sec Penetration Test",
-    category: "Security",
-    difficulty: "Expert",
-    duration: "6 Minggu",
-    team: "Individual",
-    match: "92%",
-    image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop",
-    icon: <Shield size={20} />
+    id: "p2",
+    title: "AWS VPC Architecture",
+    category: "Infrastructure",
+    thumbnail: "bg-gradient-to-br from-amber-500 to-orange-600",
+    score: 88,
+    skills: ["AWS EC2", "VPC", "Security Group"],
+    feedback: "Isolasi subnet publik dan privat sudah benar. Perhatikan aturan Security Group untuk port SSH agar tidak terbuka ke 0.0.0.0/0."
   },
   {
-    title: "Social Media UI Kit",
-    category: "Design",
-    difficulty: "Intermediate",
-    duration: "2 Minggu",
-    team: "2 Orang",
-    match: "85%",
-    image: "https://images.unsplash.com/photo-1586717791821-3f44a563eb4c?q=80&w=2070&auto=format&fit=crop",
-    icon: <Palette size={20} />
-  },
-  {
-    title: "Real-time Chat App",
-    category: "Development",
-    difficulty: "Intermediate",
-    duration: "3 Minggu",
-    team: "2-4 Orang",
-    match: "88%",
-    image: "https://images.unsplash.com/photo-1611746872915-64382b5c76da?q=80&w=2070&auto=format&fit=crop",
-    icon: <Code size={20} />
-  },
+    id: "p3",
+    title: "React Dashboard UI",
+    category: "Frontend",
+    thumbnail: "bg-gradient-to-br from-emerald-400 to-teal-500",
+    score: 95,
+    skills: ["React", "Tailwind", "Framer Motion"],
+    feedback: "Implementasi desain glassmorphism luar biasa. Animasi sangat halus (60fps). Coba pertimbangkan aksesibilitas (a11y) untuk warna kontras."
+  }
 ];
 
-export default function Projects() {
-  const [activeFilter, setActiveFilter] = useState("Semua");
+export default function ProjectsPage() {
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  
+  // Submit State
+  const [linkInput, setLinkInput] = useState('');
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evalResult, setEvalResult] = useState<any>(null);
+
+  const handleEvaluate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!linkInput) return;
+    
+    setIsEvaluating(true);
+    setEvalResult(null);
+
+    // Mock API Call delay
+    setTimeout(() => {
+      setEvalResult({
+        title: "Evaluasi Proyek Baru",
+        score: 85,
+        skills: ["API Integration", "Deployment", "Git"],
+        feedback: "Mentor AI melihat struktur kode yang rapi pada repository Anda. Penggunaan variabel environment sudah aman. Untuk skor lebih tinggi, lengkapi README.md dengan instruksi instalasi yang jelas."
+      });
+      setIsEvaluating(false);
+    }, 2500);
+  };
 
   return (
-    <div className="relative min-h-screen">
+    <div className="min-h-screen bg-slate-950 text-white overflow-x-hidden relative">
       <Navbar />
 
-      <main className="pt-32 pb-20 px-6 max-w-7xl mx-auto">
-        {/* Header section */}
-        <section className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
-          <div className="max-w-2xl">
-             <h4 className="text-primary font-bold text-sm uppercase tracking-widest mb-4">Project Ecosystem</h4>
-             <h1 className="text-4xl md:text-5xl font-display font-black leading-tight">
-                Bangun Portofoliomu dengan <br /> Proyek Berbasis Industri
-             </h1>
+      {/* Subtle Grid Overlay */}
+      <div 
+        className="fixed inset-0 z-0 opacity-[0.03] pointer-events-none" 
+        style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '60px 60px' }} 
+      />
+      <div className="fixed top-0 right-0 w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[150px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-0 w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[150px] pointer-events-none z-0" />
+
+      <main className="pt-32 pb-20 px-4 md:px-8 max-w-[1400px] mx-auto relative z-10">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+          <div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black font-display tracking-tighter mb-4">
+              Portfolio Lab
+            </h1>
+            <p className="text-white/60 text-lg md:text-xl font-medium max-w-2xl">
+              Unggah proyekmu dan dapatkan evaluasi otomatis dari AI Mentor. Bangun portofolio industri-standar.
+            </p>
           </div>
-          <div className="flex gap-3">
-             <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                <input 
-                   type="text" 
-                   placeholder="Cari proyek..." 
-                   className="glass h-12 pl-12 pr-6 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all w-full md:w-64"
-                />
+          <Button 
+            onClick={() => setIsSubmitModalOpen(true)}
+            className="rounded-full px-6 py-6 bg-white hover:bg-white/90 text-slate-950 font-black text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all hover:scale-105"
+          >
+            <Plus size={20} className="mr-2" /> Evaluasi Proyek Baru
+          </Button>
+        </div>
+
+        {/* Bento Grid layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-[280px]">
+          
+          {/* Main Feature Highlight (Cols 2, Rows 2) */}
+          <div className="lg:col-span-2 lg:row-span-2 rounded-3xl p-1 relative overflow-hidden group border border-white/10 hover:border-indigo-500/50 transition-colors">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-900/40 backdrop-blur-md -z-10" />
+            <div className="h-full w-full bg-[#0a0514]/60 backdrop-blur-xl rounded-[1.4rem] p-8 flex flex-col justify-between">
+               <div>
+                  <div className="w-16 h-16 rounded-2xl bg-indigo-500 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(99,102,241,0.5)]">
+                     <ShieldCheck size={32} className="text-white" />
+                  </div>
+                  <h2 className="text-3xl font-black mb-2 leading-tight">Sertifikasi Cloud Security<br/>Tingkat Lanjut</h2>
+                  <p className="text-white/60 font-medium">Berdasarkan 3 proyek infrastruktur terakhirmu, kamu sudah memenuhi kualifikasi untuk sertifikasi AWS Security.</p>
+               </div>
+               
+               <div className="flex justify-between items-center pt-6 border-t border-white/10 mt-6">
+                  <div className="flex gap-2">
+                     <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/20 text-xs font-bold">+3</span>
+                     <span className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50 text-emerald-400">
+                       <CheckCircle2 size={16} />
+                     </span>
+                  </div>
+                  <Button variant="ghost" className="uppercase text-xs font-bold tracking-widest text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10">
+                     Klaim Sertifikat
+                  </Button>
+               </div>
+            </div>
+          </div>
+
+          {/* Render Mock Projects */}
+          {MOCK_PROJECTS.map((project, idx) => (
+             <div 
+                key={project.id} 
+                className={cn("rounded-3xl relative overflow-hidden group cursor-pointer border border-white/10 hover:border-white/30 transition-all", idx === 0 ? "lg:col-span-2" : "lg:col-span-1 lg:row-span-2")}
+                onClick={() => setSelectedProject(project)}
+             >
+                {/* Bg Image/Color */}
+                <div className={cn("absolute inset-0 opacity-40 group-hover:opacity-60 transition-opacity duration-500", project.thumbnail)} />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0514] via-[#0a0514]/80 to-transparent" />
+                
+                <div className="relative h-full w-full p-6 flex flex-col justify-end">
+                   <div className="absolute top-6 right-6 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-xs font-black text-amber-400 flex items-center gap-1">
+                      <Star size={12} fill="currentColor" /> {project.score}
+                   </div>
+                   
+                   <h3 className="text-2xl font-black mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/50 transition-all">{project.title}</h3>
+                   <span className="text-xs font-bold text-white/50 uppercase tracking-widest mb-4 inline-block">{project.category}</span>
+                   
+                   <div className="flex flex-wrap gap-2">
+                      {project.skills.map(skill => (
+                         <span key={skill} className="px-2.5 py-1 rounded bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold">
+                            {skill}
+                         </span>
+                      ))}
+                   </div>
+                </div>
              </div>
-             <Button variant="outline" className="glass rounded-full px-5 gap-2 h-12 font-bold"><Filter size={18}/> Filters</Button>
+          ))}
+
+          {/* Quick Stats or Empty Slots */}
+          <div className="lg:col-span-1 rounded-3xl p-6 bg-white/5 border border-white/10 backdrop-blur-md flex flex-col items-center justify-center text-center hover:bg-white/10 transition-colors">
+             <Code size={32} className="text-white/40 mb-4" />
+             <h4 className="font-bold text-white/60">Terkunci</h4>
+             <p className="text-xs text-white/40 mt-2 px-4">Selesaikan modul React untuk membuka slot portfolio ini.</p>
           </div>
-        </section>
 
-        {/* Filters pills */}
-        <div className="flex flex-wrap gap-4 mb-12">
-           {["Semua", "Cloud", "Security", "Design", "Development", "AI"].map(f => (
-              <button 
-                 key={f}
-                 onClick={() => setActiveFilter(f)}
-                 className={cn(
-                    "px-6 py-2 rounded-full text-xs font-bold border transition-all",
-                    activeFilter === f 
-                       ? "bg-primary border-primary text-white shadow-lg" 
-                       : "bg-white/40 border-white/60 text-muted-foreground hover:bg-white/60"
-                 )}
-              >
-                 {f}
-              </button>
-           ))}
-        </div>
-
-        {/* Project Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-           {PROJECTS.map((proj, i) => (
-              <motion.div
-                 key={proj.title}
-                 initial={{ opacity: 0, y: 30 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 transition={{ delay: i * 0.1 }}
-              >
-                 <CardTilt className="w-full" tiltMaxAngle={5} scale={1.01}>
-                    <CardTiltContent className="glass rounded-[2.5rem] overflow-hidden flex flex-col md:flex-row h-full border border-white/40 group">
-                       
-                       {/* Project Image */}
-                       <div className="w-full md:w-[40%] h-48 md:h-auto relative overflow-hidden shrink-0">
-                          <img 
-                             src={proj.image} 
-                             alt={proj.title} 
-                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                          <div className="absolute bottom-4 left-4 flex gap-2">
-                             <div className="glass px-2 py-1 rounded-md text-[8px] font-bold text-white uppercase tracking-widest">{proj.category}</div>
-                          </div>
-                       </div>
-
-                       {/* Project Content */}
-                       <div className="p-8 flex flex-col justify-between flex-1">
-                          <div>
-                             <div className="flex justify-between items-start mb-4">
-                                <div className="p-3 bg-primary/10 rounded-2xl text-primary">
-                                   {proj.icon}
-                                </div>
-                                <div className="text-right">
-                                   <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-                                      {proj.match} Match
-                                   </span>
-                                </div>
-                             </div>
-
-                             <h3 className="text-2xl font-display font-black mb-6 leading-tight group-hover:text-primary transition-colors">
-                                {proj.title}
-                             </h3>
-
-                             <div className="grid grid-cols-2 gap-4 mb-8">
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                   <LayoutGrid size={14} />
-                                   <span className="text-[10px] font-bold uppercase tracking-widest">{proj.difficulty}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                   <Clock size={14} />
-                                   <span className="text-[10px] font-bold uppercase tracking-widest">{proj.duration}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-muted-foreground col-span-2">
-                                   <Users size={14} />
-                                   <span className="text-[10px] font-bold uppercase tracking-widest">{proj.team}</span>
-                                </div>
-                             </div>
-                          </div>
-
-                          <div className="flex items-center gap-4">
-                             <Button className="flex-1 rounded-2xl py-6 bg-primary hover:bg-primary/95 text-white font-bold text-xs uppercase tracking-widest shadow-xl shadow-primary/20">
-                                Ambil Proyek
-                             </Button>
-                             <Button variant="outline" size="icon" className="glass rounded-2xl w-14 h-14 shrink-0 transition-transform group-hover:rotate-12">
-                                <ArrowUpRight size={20} />
-                             </Button>
-                          </div>
-                       </div>
-                    </CardTiltContent>
-                 </CardTilt>
-              </motion.div>
-           ))}
-        </div>
-
-        {/* Load More Section */}
-        <div className="mt-20 flex flex-col items-center">
-           <Button variant="ghost" className="text-muted-foreground font-bold flex flex-col gap-2 group">
-              <span className="uppercase tracking-[0.3em] text-[10px]">Tampilkan Lebih Banyak</span>
-              <motion.div animate={{ y: [0, 5, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>
-                 <ArrowUpRight className="rotate-90" size={20} />
-              </motion.div>
-           </Button>
         </div>
       </main>
+
+      {/* Slide-Over AI Evaluation Detail */}
+      <Sheet open={!!selectedProject} onOpenChange={(open) => !open && setSelectedProject(null)}>
+         <SheetContent className="w-full sm:max-w-md lg:max-w-lg bg-[#0a0514]/95 backdrop-blur-3xl border-l-white/10 p-0 text-white flex flex-col">
+            {selectedProject && (
+               <>
+                  {/* Visual Header */}
+                  <div className={cn("h-48 w-full relative", selectedProject.thumbnail)}>
+                     <div className="absolute inset-0 bg-gradient-to-t from-[#0a0514] to-transparent" />
+                     <div className="absolute bottom-6 left-8 flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/20 flex flex-col items-center justify-center shadow-2xl">
+                           <span className="text-2xl font-black text-amber-400">{selectedProject.score}</span>
+                        </div>
+                        <div>
+                           <h2 className="text-2xl font-black leading-tight drop-shadow-md">{selectedProject.title}</h2>
+                           <span className="text-xs font-bold uppercase tracking-widest opacity-80">{selectedProject.category}</span>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="p-8 flex-1 overflow-y-auto space-y-8">
+                     <div>
+                        <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#feb47b] mb-4">
+                           <Bot size={16} /> Feedback Mentor AI
+                        </h4>
+                        <div className="p-5 rounded-2xl bg-white/5 border border-white/10 shadow-inner">
+                           <p className="text-slate-300 leading-relaxed font-medium italic">"{selectedProject.feedback}"</p>
+                        </div>
+                     </div>
+
+                     <div>
+                        <h4 className="text-xs font-bold uppercase tracking-widest text-white/50 mb-4">Skill Diverifikasi</h4>
+                        <div className="flex flex-wrap gap-2">
+                           {selectedProject.skills.map(s => (
+                              <span key={s} className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-sm">
+                                 {s}
+                              </span>
+                           ))}
+                        </div>
+                     </div>
+                  </div>
+               </>
+            )}
+         </SheetContent>
+      </Sheet>
+
+      {/* Submit Evaluation Modal (Slide Up or Dialog) */}
+      <AnimatePresence>
+         {isSubmitModalOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+               <motion.div 
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  onClick={() => !isEvaluating && setIsSubmitModalOpen(false)}
+                  className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+               />
+               
+               <motion.div 
+                  initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                  className="relative w-full max-w-lg bg-[#1a0f2e] border border-white/20 p-8 rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.5)] overflow-hidden"
+               >
+                  {/* Deco */}
+                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-500/20 rounded-full blur-[50px]" />
+                  
+                  <h2 className="text-3xl font-black mb-2 tracking-tight">Evaluasi Proyek</h2>
+                  <p className="text-white/60 text-sm font-medium mb-8">Tempel link repository GitHub atau URL proyek live Anda. AI akan menganalisis kode dan performa.</p>
+
+                  {!evalResult ? (
+                     <form onSubmit={handleEvaluate} className="relative">
+                        <div className="relative mb-8">
+                           <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={20} />
+                           <input 
+                              disabled={isEvaluating}
+                              value={linkInput}
+                              onChange={e => setLinkInput(e.target.value)}
+                              type="url" 
+                              placeholder="https://github.com/username/repo..."
+                              className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl pl-12 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
+                              required
+                           />
+                        </div>
+
+                        <Button 
+                           disabled={isEvaluating}
+                           type="submit" 
+                           className="w-full h-14 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-black text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(99,102,241,0.4)]"
+                        >
+                           {isEvaluating ? (
+                              <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin"/> Menganalisis Kode...</span>
+                           ) : (
+                              "Mulai Evaluasi AI"
+                           )}
+                        </Button>
+                     </form>
+                  ) : (
+                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                        <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/30 mb-6 text-center">
+                           <div className="w-16 h-16 rounded-full bg-indigo-500 mx-auto mb-4 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.5)]">
+                              <Star size={32} className="text-amber-400" fill="currentColor" />
+                           </div>
+                           <h3 className="text-2xl font-black text-white">{evalResult.score} / 100</h3>
+                           <p className="text-indigo-200 text-sm font-bold mt-1 uppercase tracking-widest">Skor Proyek Baru</p>
+                        </div>
+                        <p className="text-white/80 text-sm leading-relaxed italic mb-6">"{evalResult.feedback}"</p>
+                        <Button 
+                           onClick={() => { setIsSubmitModalOpen(false); setEvalResult(null); setLinkInput(''); }}
+                           className="w-full h-14 rounded-2xl bg-white text-slate-900 hover:bg-slate-200 font-black uppercase tracking-widest"
+                        >
+                           Simpan ke Portofolio
+                        </Button>
+                     </motion.div>
+                  )}
+
+               </motion.div>
+            </div>
+         )}
+      </AnimatePresence>
     </div>
   );
 }

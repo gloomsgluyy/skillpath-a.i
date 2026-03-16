@@ -2,223 +2,295 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Navbar } from '@/components/layout/Navbar';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { Send, Bot, User, Info, Save, Share2, Zap, LayoutGrid } from 'lucide-react';
+import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
+import { Bot, Send, ArrowLeft, Save, Download, Sparkles, CheckCircle2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-import { Splitter, SplitterPanel } from '@/components/ui/splitter';
+interface Node {
+  id: string;
+  title: string;
+  description: string;
+  estimatedHours: number;
+  prerequisites: string[];
+  status: 'locked' | 'active' | 'completed';
+  x: number;
+  y: number;
+}
 
-const NODES = [
-  { id: 1, label: "Basic Linux", status: "done", x: 100, y: 150 },
-  { id: 2, label: "Networking", status: "done", x: 250, y: 150 },
-  { id: 3, label: "Docker Intro", status: "active", x: 400, y: 100 },
-  { id: 4, label: "Cloud Security", status: "todo", x: 400, y: 200 },
-  { id: 5, label: "Kubernetes", status: "todo", x: 550, y: 150 },
-  { id: 6, label: "Cloud Arch", status: "todo", x: 700, y: 150 },
-];
-
-const CONNECTIONS = [
-  { from: 1, to: 2 },
-  { from: 2, to: 3 },
-  { from: 2, to: 4 },
-  { from: 3, to: 5 },
-  { from: 4, to: 5 },
-  { from: 5, to: 6 },
-];
-
-export default function SkillPaths() {
-  const [messages, setMessages] = useState([
-    { role: 'ai', text: 'Halo! Saya asisten AI SkillPath. Saya telah menyusun roadmap Cloud Architecture untukmu berdasarkan hasil tes bakatmu.' },
-    { role: 'ai', text: 'Jalur ini fokus pada transisi dari Linux Administrator ke Cloud Architect dalam 6 bulan. Ada yang ingin kamu tanyakan tentang simpul pertama?' },
+export default function SkillPathsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [careerTitle, setCareerTitle] = useState("Cloud Architecture Engineer");
+  
+  // Chat State
+  const [messages, setMessages] = useState<{role: 'user'|'ai', text: string}[]>([
+    { role: 'ai', text: 'Halo! Saya AI Consultant kamu. Saya telah menyusun Neural Roadmap ini untuk karir Cloud Architect. Ada bagian yang ingin dibahas?' }
   ]);
-  const [inputText, setInputText] = useState('');
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+
+  // Canvas State (Pan & Zoom)
+  const [scale, setScale] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  
+  // Nodes State (Mock data until API is fully wired)
+  const [nodes, setNodes] = useState<Node[]>([
+    { id: '1', title: 'Linux Basics', description: 'File systems, permissions, shell scripting', estimatedHours: 20, prerequisites: [], status: 'completed', x: 200, y: 100 },
+    { id: '2', title: 'Computer Networking', description: 'OSI Model, TCP/IP, DNS, Routing', estimatedHours: 25, prerequisites: ['1'], status: 'active', x: 200, y: 250 },
+    { id: '3', title: 'Docker Containers', description: 'Containerization, images, Dockerfile', estimatedHours: 15, prerequisites: ['2'], status: 'locked', x: 100, y: 400 },
+    { id: '4', title: 'Cloud Concepts', description: 'IaaS, PaaS, SaaS, AWS/GCP Intro', estimatedHours: 20, prerequisites: ['2'], status: 'locked', x: 300, y: 400 },
+    { id: '5', title: 'Kubernetes', description: 'Orchestration, Pods, Deployments', estimatedHours: 40, prerequisites: ['3', '4'], status: 'locked', x: 200, y: 550 },
+  ]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // Look for career param
+    const c = searchParams.get('career');
+    if (c) {
+      if (c === 'fullstack-dev') setCareerTitle("Full-Stack Developer");
+      else if (c.includes('cyber')) setCareerTitle("Cyber Security Analyst");
+      
+      // In a real app we'd fetch from /api/generate-path here
+    }
+  }, [searchParams]);
 
-  const handleSend = () => {
-    if (!inputText.trim()) return;
-    setMessages([...messages, { role: 'user', text: inputText }]);
-    setInputText('');
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim()) return;
     
-    // Fake AI Response
+    setMessages(prev => [...prev, { role: 'user', text: inputValue }]);
+    setInputValue('');
+    setIsTyping(true);
+    
     setTimeout(() => {
       setMessages(prev => [...prev, { 
         role: 'ai', 
-        text: 'Tentu! Cloud Security adalah komponen krusial. Kita akan mulai dengan Identity and Access Management (IAM).' 
+        text: 'Menarik! Fokus ke keamanan siber memang krusial. Saya akan menyorot (highlight) modul Security di roadmap bagian kanan.' 
       }]);
+      setIsTyping(false);
+      // Simulate highlighting a node
+      setNodes(prev => prev.map(n => n.id === '2' ? { ...n, status: 'active' } : n));
     }, 1500);
   };
 
+  const handleZoom = (dz: number) => {
+    setScale(s => Math.min(Math.max(0.5, s + dz), 2));
+  };
+
   return (
-    <div className="relative min-h-screen">
-      <Navbar />
+    <div className="flex h-screen w-full bg-[#0a0514] overflow-hidden text-white font-sans">
+      {/* Background Architectural Grid Pattern */}
+      <div 
+        className="absolute inset-0 z-0 opacity-10" 
+        style={{ 
+          backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', 
+          backgroundSize: '40px 40px' 
+        }} 
+      />
+      <div className="absolute inset-0 z-0 bg-gradient-to-r from-transparent to-[#1a0f2e]/80 pointer-events-none" />
 
-      <main className="pt-24 h-[calc(100vh)] flex overflow-hidden">
-        <Splitter defaultSize={30} className="w-full h-full">
-          {/* Left: AI Chatbot Panel */}
-          <SplitterPanel className="h-full">
-            <div className="w-full h-full glass flex flex-col border-r border-white/20 z-10 shadow-2xl">
-          <div className="p-6 border-b border-white/10 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-               <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-lg">
-                  <Bot size={22} />
-               </div>
-               <div>
-                  <h4 className="font-bold text-sm">SkillPath Consultant</h4>
-                  <div className="flex items-center gap-1.5">
-                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                     <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">AI Online</span>
-                  </div>
-               </div>
+      {/* Left Column: AI Consultant Chatbot Panel (30%) */}
+      <div className="relative z-10 w-full md:w-[30%] h-full bg-black/40 backdrop-blur-2xl border-r border-[#feb47b]/30 shadow-[10px_0_30px_rgba(254,180,123,0.05)] flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-white/10 flex items-center gap-4 bg-white/5">
+          <button onClick={() => router.back()} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+             <ArrowLeft size={20} />
+          </button>
+          <div className="relative">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
+               <Bot size={24} className="text-white" />
             </div>
-            <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground"><Info size={18}/></Button>
+            <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-[#0a0514]"></span>
+            </span>
           </div>
-
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {messages.map((msg, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                className={cn(
-                  "flex gap-3 max-w-[90%]",
-                  msg.role === 'user' ? "ml-auto flex-row-reverse" : "mr-auto"
-                )}
-              >
-                <div className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-md",
-                  msg.role === 'ai' ? "bg-white text-primary" : "bg-primary text-white"
-                )}>
-                  {msg.role === 'ai' ? <Bot size={14} /> : <User size={14} />}
-                </div>
-                <div className={cn(
-                  "p-4 rounded-2xl text-sm leading-relaxed shadow-sm",
-                  msg.role === 'ai' ? "bg-white/60 backdrop-blur-md rounded-tl-none border border-white/40" : "bg-primary text-white rounded-tr-none"
-                )}>
-                  {msg.text}
-                </div>
-              </motion.div>
-            ))}
-            <div ref={chatEndRef} />
-          </div>
-
-          <div className="p-6 border-t border-white/10 bg-white/20 backdrop-blur-xl">
-            <form 
-               onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-               className="relative flex items-center"
-            >
-               <input 
-                  type="text" 
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Tanyakan sesuatu..."
-                  className="w-full bg-white/50 border border-white/60 rounded-full py-3 pl-5 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all placeholder:text-muted-foreground/60"
-               />
-               <button 
-                  type="submit"
-                  className="absolute right-2 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-all shadow-lg"
-               >
-                  <Send size={14} />
-               </button>
-            </form>
+          <div>
+            <h2 className="font-display font-black text-lg text-white">Pathfinder AI</h2>
+            <p className="text-xs font-bold text-emerald-400 tracking-widest uppercase">Consultant Online</p>
           </div>
         </div>
-        </SplitterPanel>
-        {/* Right: Neural Roadmap Canvas */}
-          <SplitterPanel className="h-full">
-            <div className="w-full h-full relative overflow-hidden bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-repeat opacity-[0.97]">
-              
-              {/* Canvas Controls */}
-              <div className="absolute top-8 right-8 flex gap-3 z-20">
-                 <Button variant="outline" className="glass rounded-full px-4 text-xs font-bold gap-2"><LayoutGrid size={14}/> Grid View</Button>
-                 <Button className="rounded-full px-6 bg-primary text-white text-xs font-bold gap-2 shadow-xl shadow-primary/20"><Save size={14}/> Simpan Roadmap</Button>
-                 <Button variant="ghost" size="icon" className="glass rounded-full"><Share2 size={16}/></Button>
+
+        {/* Chat Messages */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+          {messages.map((msg, i) => (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} 
+              key={i} 
+              className={cn("flex w-full", msg.role === 'user' ? "justify-end" : "justify-start")}
+            >
+              <div className={cn(
+                "max-w-[85%] p-4 text-sm font-medium leading-relaxed rounded-2xl",
+                msg.role === 'user' 
+                  ? "bg-white/10 border border-white/20 text-white rounded-tr-sm"
+                  : "bg-gradient-to-br from-[#2a1b3d] to-[#1a0f2e] border border-[#feb47b]/20 text-slate-200 rounded-tl-sm shadow-xl"
+              )}>
+                {msg.text}
               </div>
+            </motion.div>
+          ))}
+          
+          {isTyping && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+                <div className="bg-[#1a0f2e] border border-white/10 px-4 py-3 rounded-2xl rounded-tl-sm flex gap-1.5 items-center">
+                   <div className="w-2 h-2 rounded-full bg-[#feb47b] animate-bounce" style={{ animationDelay: '0ms' }} />
+                   <div className="w-2 h-2 rounded-full bg-[#feb47b] animate-bounce" style={{ animationDelay: '150ms' }} />
+                   <div className="w-2 h-2 rounded-full bg-[#feb47b] animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+             </motion.div>
+          )}
+        </div>
 
-              {/* Roadmap SVG Grid */}
-              <div className="absolute inset-0 z-0 pointer-events-none opacity-10">
-                 <svg width="100%" height="100%">
-                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                       <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5"/>
-                    </pattern>
-                    <rect width="100%" height="100%" fill="url(#grid)" />
-                 </svg>
-              </div>
+        {/* Input Field */}
+        <div className="p-4 bg-black/20">
+          <form onSubmit={handleSendMessage} className="relative flex items-center">
+            <input 
+              type="text" 
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Tanya soal roadmap ini..."
+              className="w-full bg-transparent border-b-2 border-white/20 focus:border-[#feb47b] px-4 py-3 text-sm text-white focus:outline-none transition-colors placeholder:text-white/30"
+            />
+            <button 
+              type="submit" 
+              disabled={!inputValue.trim() || isTyping}
+              className="absolute right-0 p-3 text-[#feb47b] hover:text-white transition-colors disabled:opacity-50"
+            >
+              <Send size={18} />
+            </button>
+          </form>
+        </div>
+      </div>
 
-              {/* Interactive Graph Area */}
-              <div className="absolute inset-0 flex items-center justify-center overflow-auto p-20 cursor-grab active:cursor-grabbing">
-                 <div className="relative min-w-[800px] min-h-[400px]">
-                    <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none">
-                       {/* Connections */}
-                       {CONNECTIONS.map((conn, i) => {
-                          const from = NODES.find(n => n.id === conn.from)!;
-                          const to = NODES.find(n => n.id === conn.to)!;
-                          return (
-                             <motion.path
-                                key={i}
-                                d={`M ${from.x} ${from.y} C ${(from.x + to.x) / 2} ${from.y}, ${(from.x + to.x) / 2} ${to.y}, ${to.x} ${to.y}`}
-                                fill="none"
-                                stroke={from.status === 'done' && to.status !== 'todo' ? "var(--sp-accent-gold)" : "rgba(0,0,0,0.1)"}
-                                strokeWidth="3"
-                                strokeDasharray={to.status === 'todo' ? "5 5" : "none"}
-                                initial={{ pathLength: 0, opacity: 0 }}
-                                animate={{ pathLength: 1, opacity: 1 }}
-                                transition={{ duration: 1, delay: i * 0.2 }}
-                             />
-                          );
-                       })}
-                    </svg>
+      {/* Right Column: Neural Roadmap Canvas (70%) */}
+      <div className="relative z-10 flex-1 h-full cursor-grab active:cursor-grabbing overflow-hidden">
+         {/* Canvas Header */}
+         <div className="absolute top-6 left-8 z-20 pointer-events-none">
+            <h1 className="text-3xl md:text-5xl font-black font-display tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/50 drop-shadow-xl">
+               Neural Roadmap
+            </h1>
+            <p className="text-[#feb47b] font-bold tracking-widest uppercase text-sm mt-2">{careerTitle}</p>
+         </div>
 
-                    {/* Nodes */}
-                    {NODES.map((node, i) => (
-                       <motion.div
-                          key={node.id}
-                          initial={{ scale: 0, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ delay: i * 0.1, type: "spring" }}
-                          style={{ left: node.x, top: node.y }}
-                          className="absolute -translate-x-1/2 -translate-y-1/2 group"
-                       >
-                          <button className={cn(
-                            "w-20 h-20 rounded-full flex items-center justify-center border-2 transition-all duration-500 shadow-xl relative",
-                            node.status === 'done' ? "bg-sp-accent-gold border-white text-white scale-110" : 
-                            node.status === 'active' ? "bg-white border-primary text-primary animate-pulse" : 
-                            "bg-white/40 border-white/60 text-muted-foreground backdrop-blur-md"
-                          )}>
-                             <Zap size={24} className={cn(node.status === 'active' && "animate-bounce")} />
-                             
-                             {/* Status Label */}
-                             <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-extrabold uppercase tracking-widest bg-white/80 backdrop-blur-sm px-3 py-1 rounded-full border border-white shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                                {node.label} • {node.status.toUpperCase()}
-                             </div>
+         {/* Zoom Controls */}
+         <div className="absolute top-6 right-6 z-20 flex gap-2">
+            <button onClick={() => handleZoom(-0.1)} className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center font-bold text-xl shadow-xl transition-all">-</button>
+            <button onClick={() => handleZoom(0.1)} className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center font-bold text-xl shadow-xl transition-all">+</button>
+         </div>
 
-                             {/* Pulse Rings for active node */}
-                             {node.status === 'active' && (
-                                <div className="absolute inset-0 rounded-full border-4 border-primary/20 animate-ping" />
-                             )}
-                          </button>
-                       </motion.div>
-                    ))}
-                 </div>
-              </div>
+         {/* Interactive Canvas Area */}
+         <motion.div 
+            drag 
+            dragConstraints={{ left: -1000, right: 1000, top: -1000, bottom: 1000 }}
+            className="w-full h-full relative"
+            style={{ scale }}
+            animate={{ x: pan.x, y: pan.y }}
+         >
+            {/* Draw Connecting Lines (SVG) */}
+            <svg className="absolute inset-0 w-[2000px] h-[2000px] pointer-events-none" style={{ left: '50%', top: '50%', transform: 'translate(-10rem, -5rem)' }}>
+               {nodes.map(node => 
+                  node.prerequisites.map(preId => {
+                     const preNode = nodes.find(n => n.id === preId);
+                     if (!preNode) return null;
+                     
+                     // If both are completed/active, line glows
+                     const isLineActive = preNode.status !== 'locked' && node.status !== 'locked';
+                     
+                     return (
+                        <path 
+                           key={`${preId}-${node.id}`}
+                           d={`M ${preNode.x} ${preNode.y} C ${preNode.x} ${(preNode.y + node.y)/2}, ${node.x} ${(preNode.y + node.y)/2}, ${node.x} ${node.y}`}
+                           fill="none"
+                           stroke={isLineActive ? "url(#glowGradient)" : "rgba(255,255,255,0.1)"}
+                           strokeWidth={isLineActive ? 3 : 2}
+                           className={isLineActive ? "drop-shadow-[0_0_8px_rgba(254,180,123,0.8)]" : ""}
+                        />
+                     );
+                  })
+               )}
+               <defs>
+                  <linearGradient id="glowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                     <stop offset="0%" stopColor="#ff7e5f" />
+                     <stop offset="100%" stopColor="#feb47b" />
+                  </linearGradient>
+               </defs>
+            </svg>
 
-              {/* Timeline Vertical Markers */}
-              <div className="absolute left-8 top-32 flex flex-col gap-20 pointer-events-none">
-                 {[1, 2, 3, 4, 5, 6].map(m => (
-                    <div key={m} className="flex items-center gap-3">
-                       <span className="text-[10px] font-bold text-muted-foreground/50 rotate-90">BULAN {m}</span>
-                       <div className="w-10 h-[1px] bg-muted-foreground/20" />
-                    </div>
-                 ))}
-              </div>
+            {/* Render Nodes */}
+            <div className="absolute inset-0" style={{ left: '50%', top: '50%', transform: 'translate(-10rem, -5rem)' }}>
+               {nodes.map(node => (
+                 <HoverCard key={node.id} openDelay={200} closeDelay={100}>
+                   <HoverCardTrigger asChild>
+                     <div 
+                        className={cn(
+                           "absolute -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300",
+                           node.status === 'completed' 
+                              ? "w-16 h-16 bg-[#FFD700] border-4 border-white shadow-[0_0_30px_rgba(255,215,0,0.6)] z-20" 
+                              : node.status === 'active'
+                                 ? "w-20 h-20 bg-black/40 backdrop-blur-md border-2 border-[#ccff00] shadow-[0_0_40px_rgba(204,255,0,0.5)] z-30" 
+                                 : "w-14 h-14 bg-white/5 backdrop-blur-sm border border-white/20 opacity-60 hover:opacity-100 z-10"
+                        )}
+                        style={{ left: node.x, top: node.y }}
+                     >
+                        {node.status === 'completed' && <CheckCircle2 className="text-[#0a0514]" size={28} />}
+                        {node.status === 'active' && (
+                           <div className="absolute inset-0 rounded-full border border-[#ccff00] animate-ping opacity-50" />
+                        )}
+                        {node.status === 'active' && <Sparkles className="text-[#ccff00]" size={28} />}
+                     </div>
+                   </HoverCardTrigger>
+                   <HoverCardContent side="right" sideOffset={20} className="w-80 bg-white/10 backdrop-blur-3xl border border-white/20 p-5 rounded-2xl shadow-2xl z-50 text-white">
+                      <div className="flex justify-between items-start mb-2">
+                         <h4 className="text-lg font-black">{node.title}</h4>
+                         <span className="text-xs font-bold text-[#feb47b] bg-[#feb47b]/10 px-2 py-1 rounded-md">{node.estimatedHours} Jam</span>
+                      </div>
+                      <p className="text-sm text-slate-300 mb-6">{node.description}</p>
+                      
+                      <Button 
+                         disabled={node.status === 'locked'}
+                         className={cn(
+                           "w-full rounded-xl font-bold",
+                           node.status === 'locked' 
+                              ? "bg-white/10 text-white/40"
+                              : "bg-gradient-to-r from-[#ff7e5f] to-[#feb47b] text-slate-900 border-none hover:shadow-[0_0_20px_rgba(254,180,123,0.5)]"
+                         )}
+                      >
+                         {node.status === 'locked' ? 'Terkunci' : 'Pelajari Sekarang'}
+                      </Button>
+                   </HoverCardContent>
+                 </HoverCard>
+               ))}
             </div>
-          </SplitterPanel>
-        </Splitter>
-      </main>
+
+            {/* Timeline Markers (Approximated positions) */}
+            <div className="absolute left-[-10rem] top-[50%] -translate-y-1/2 flex flex-col gap-[150px] pointer-events-none">
+               <div className="flex items-center gap-4 text-white/30">
+                  <span className="font-bold tracking-widest uppercase text-sm">Bulan 1</span>
+                  <div className="w-full h-px bg-white/10" />
+               </div>
+               <div className="flex items-center gap-4 text-white/30">
+                  <span className="font-bold tracking-widest uppercase text-sm">Bulan 2</span>
+                  <div className="w-full h-px bg-white/10" />
+               </div>
+               <div className="flex items-center gap-4 text-white/30">
+                  <span className="font-bold tracking-widest uppercase text-sm">Bulan 3</span>
+                  <div className="w-full h-px bg-white/10" />
+               </div>
+            </div>
+         </motion.div>
+
+         {/* Floating Action Panel (Bottom Right) */}
+         <div className="absolute bottom-8 right-8 z-30 flex gap-4">
+            <Button variant="outline" className="h-14 w-14 rounded-2xl bg-white/5 hover:bg-white/10 border-white/20 text-white backdrop-blur-xl shadow-2xl">
+               <Save size={24} />
+            </Button>
+            <Button className="h-14 px-6 rounded-2xl bg-[#5D1636] hover:bg-[#8A2150] text-[#feb47b] border border-[#feb47b]/30 shadow-[0_0_25px_rgba(93,22,54,0.8)] flex gap-3 font-bold uppercase tracking-widest text-xs transition-all hover:scale-105">
+               <Download size={20} />
+               Export PDF
+            </Button>
+         </div>
+      </div>
     </div>
   );
 }
