@@ -16,6 +16,7 @@ interface AnimatedTextGenerateProps {
   linkWords?: string[];
   linkHrefs?: string[];
   linkClassNames?: string[];
+  justifyClassName?: string;
 }
 
 export const AnimatedTextGenerate = ({
@@ -29,6 +30,7 @@ export const AnimatedTextGenerate = ({
   linkWords = [],
   linkHrefs = [],
   linkClassNames = [],
+  justifyClassName = 'justify-center lg:justify-start',
 }: AnimatedTextGenerateProps) => {
   const [currentText, setCurrentText] = useState(text);
   const [visibleCount, setVisibleCount] = useState(0);
@@ -58,7 +60,7 @@ export const AnimatedTextGenerate = ({
 
   const generateWords = () => {
     return (
-      <div className='flex flex-wrap items-center gap-1'>
+      <div className={cn('flex flex-wrap items-center gap-1', justifyClassName)}>
         {splitWords.map((word, idx) => {
           const isVisible = idx < visibleCount;
           const remaining = splitWords.length - visibleCount;
