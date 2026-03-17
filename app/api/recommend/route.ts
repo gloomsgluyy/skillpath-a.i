@@ -10,22 +10,24 @@ export async function POST(req: Request) {
 
     const prompt = `Sebagai konsultan karir AI elit untuk dunia Teknologi dan Digital, analisislah profil berikut:
 - Pendidikan: ${pendidikan || 'Belum diisi'}
-- Arketipe Kerja: ${archetype || 'Belum diisi'}
-- Role yang Diminati: ${roleInterests?.join(', ') || 'Belum diisi'}
 - Bidang/Jurusan: ${jurusan || 'Belum diisi'}
+- Arketipe Kerja: ${archetype || 'Belum diisi'}
+- Role yang SECARA EKSPLISIT Diminati Pengguna: ${roleInterests?.join(', ') || 'Belum diisi'}
 - Minat & Hobi: ${minat}
 
-Tugas Anda:
-1. Rekomendasikan 1 karir digital utama yang paling cocok dari yang diminati (misal: "Full-Stack Developer", "UX Designer", "AI Engineer").
-2. Berikan skor kecocokan (0-100).
-3. Berikan alasan singkat kenapa cocok (max 2 kalimat, Bahasa Indonesia, nada motivatif).
-4. List 3 skill teknis utama yang harus dipelajari.
+ATURAN WAJIB:
+1. Anda WAJIB merekomendasikan karir dari daftar "Role yang Diminati" di atas. JANGAN merekomendasikan karir di luar daftar tersebut.
+2. Jika pengguna memilih "UI/UX Designer", rekomendasikan "UI/UX Designer". Jika memilih "Frontend Developer", rekomendasikan "Frontend Developer". PRIORITASKAN pilihan role pengguna.
+3. Pertimbangkan jurusan/pendidikan pengguna. Misalnya, jurusan DKV (Desain Komunikasi Visual) sangat cocok dengan UI/UX Design, Frontend, atau peran kreatif.
+4. Berikan skor kecocokan (70-100).
+5. Berikan alasan singkat kenapa cocok (max 2 kalimat, Bahasa Indonesia, nada motivatif dan personal).
+6. List 3 skill teknis utama yang harus dipelajari khusus untuk karir tersebut.
 
 Format output WAJIB JSON:
 {
-  "careerTitle": "Nama Karir",
+  "careerTitle": "Nama Karir (harus dari daftar role yang diminati pengguna)",
   "matchScore": number,
-  "reason": "Alasan kenapa cocok dalam Bahasa Indonesia",
+  "reason": "Alasan singkat kenapa cocok dalam Bahasa Indonesia",
   "skills": ["Skill 1", "Skill 2", "Skill 3"]
 }
 HANYA kembalikan JSON murni, jangan ada teks lain di luar JSON.`;

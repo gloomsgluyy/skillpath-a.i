@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 import { Bot, Send, ArrowLeft, Save, Download, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 interface Node {
   id: string;

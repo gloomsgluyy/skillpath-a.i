@@ -43,12 +43,12 @@ export default function ProfileDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0514] text-white pt-24 pb-12 overflow-x-hidden relative">
+    <div className="min-h-screen bg-[#1a1207] text-white pt-24 pb-12 overflow-x-hidden relative">
       <Navbar />
 
       {/* Decorative Blur Backgrounds */}
-      <div className="fixed top-0 right-0 w-[50%] h-[50%] bg-[#5D1636]/20 rounded-full blur-[150px] pointer-events-none" />
-      <div className="fixed bottom-0 left-[-20%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="fixed top-0 right-0 w-[50%] h-[50%] bg-amber-600/15 rounded-full blur-[150px] pointer-events-none" />
+      <div className="fixed bottom-0 left-[-20%] w-[50%] h-[50%] bg-orange-500/10 rounded-full blur-[150px] pointer-events-none" />
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 relative z-10 flex flex-col lg:flex-row gap-8">
         
@@ -57,14 +57,14 @@ export default function ProfileDashboard() {
            
            {/* Profile Card */}
            <div className="glass p-8 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-[#5D1636] to-purple-900 opacity-60" />
+              <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-amber-700 to-orange-800 opacity-60" />
               
               <div className="relative pt-12 flex flex-col items-center">
-                 <div className="w-28 h-28 rounded-[2rem] bg-[#0a0514] border-4 border-[#0a0514] p-1 shadow-2xl relative mb-6 group-hover:scale-105 transition-transform duration-500">
-                    <div className="w-full h-full rounded-[1.5rem] bg-gradient-to-br from-[#feb47b] to-[#ff7e5f] flex items-center justify-center text-4xl font-black text-[#5D1636]">
+                 <div className="w-28 h-28 rounded-[2rem] bg-[#1a1207] border-4 border-[#1a1207] p-1 shadow-2xl relative mb-6 group-hover:scale-105 transition-transform duration-500">
+                    <div className="w-full h-full rounded-[1.5rem] bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-4xl font-black text-white">
                        {userData?.displayName?.charAt(0).toUpperCase() || "U"}
                     </div>
-                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center border-2 border-[#0a0514] text-white">
+                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center border-2 border-[#1a1207] text-white">
                        <Shield size={16} />
                     </div>
                  </div>
@@ -93,7 +93,7 @@ export default function ProfileDashboard() {
               <h3 className="font-bold text-sm tracking-widest uppercase text-white/70 mb-8 self-start w-full border-b border-white/10 pb-4">Skill Radar</h3>
               
               <div className="relative w-64 h-64 mb-4">
-                 <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_20px_rgba(93,22,54,0.5)] overflow-visible">
+                 <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_20px_rgba(245,158,11,0.3)] overflow-visible">
                     {/* Grid Rings */}
                     <polygon points="50,10 90,30 90,70 50,90 10,70 10,30" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1"/>
                     <polygon points="50,30 70,40 70,60 50,70 30,60 30,40" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1"/>
@@ -218,8 +218,8 @@ export default function ProfileDashboard() {
 
               <div className="space-y-6 relative before:absolute before:inset-0 before:ml-[19px] before:h-full before:w-0.5 before:bg-white/10">
                  <div className="relative flex gap-6 group">
-                    <div className="w-10 h-10 rounded-full bg-indigo-500/20 border border-indigo-500/50 flex items-center justify-center shrink-0 z-10 shadow-lg group-hover:bg-indigo-500 transition-colors">
-                       <CheckCircle2 size={16} className="text-indigo-400 group-hover:text-white" />
+                    <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/50 flex items-center justify-center shrink-0 z-10 shadow-lg group-hover:bg-amber-500 transition-colors">
+                       <CheckCircle2 size={16} className="text-amber-400 group-hover:text-white" />
                     </div>
                     <div className="pt-2">
                        <p className="font-bold text-sm leading-none flex items-center gap-2">

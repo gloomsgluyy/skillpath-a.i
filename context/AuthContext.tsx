@@ -1,8 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User, signInWithPopup, signOut } from 'firebase/auth';
+import { onAuthStateChanged, User, signInWithPopup, signOut, updateProfile } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
+import { saveUserProfile } from '@/lib/firestore';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -32,7 +33,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      
+      // Read onboarding data saved before login
+      const storedRaw = localStorage.getItem('skillpath_onboarding_data');
+      const onboardingData = storedRaw ? JSON.parse(storedRaw) : {};
+      
+      // If user typed a custom displayName during onboarding, use that instead of Google's
+      const customName = onboardingData.displayName;
+      if (customName && customName.trim()) {
+        await updateProfile(user, { displayName: customName.trim() });
+        // Force re-read of user so UI updates
+        setCurrentUser({ ...user, displayName: customName.trim() } as User);
+      }
+      
+      // Save full profile to Firestore
+      await saveUserProfile(user.uid, {
+        uid: user.uid,
+        displayName: customName?.trim() || user.displayName || 'User',
+        email: user.email,
+        photoURL: user.photoURL,
+        pendidikan: onboardingData.pendidikan || '',
+        archetype: onboardingData.archetype || '',
+        roleInterests: onboardingData.roleInterests || [],
+      }).catch((err: any) => console.error('Firestore save error:', err));
+      
     } catch (error) {
       console.error("Error signing in with Google", error);
       throw error;

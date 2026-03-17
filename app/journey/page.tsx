@@ -7,7 +7,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { PlayCircle, CheckCircle2, Lock, Flame, Trophy, Star, BookOpen, MessageSquare, Plus, Check } from 'lucide-react';
+import { PlayCircle, CheckCircle2, Lock, Flame, Trophy, Star, BookOpen, MessageSquare, Plus, Check, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Task {
