@@ -18,31 +18,40 @@ const CAREERS = [
     id: "cloud-architect",
     title: "Cloud Architecture Engineer",
     category: "Infrastruktur & Jaringan",
-    match: "85%", demand: 90, salary: "Rp 15-25 Jt / bulan",
+    demand: 90, salary: "Rp 15-25 Jt / bulan",
     skills: ["AWS/GCP", "Kubernetes", "Terraform"],
     icon: <Server className="w-10 h-10 text-blue-500" />,
     color: "blue",
-    desc: "Mendesain dan memelihara infrastruktur server berbasis cloud agar sistem perusahaan berjalan efisien dan tidak pernah down."
+    desc: "Mendesain dan memelihara infrastruktur server berbasis cloud agar sistem perusahaan berjalan efisien dan tidak pernah down.",
+    relatedRoles: ["Cloud Engineer", "DevOps Engineer", "Backend Developer"],
+    relatedArchetypes: ["logis", "builder", "data"],
+    relatedJurusan: ["teknik informatika", "sistem informasi", "ilmu komputer"],
   },
   {
     id: "cyber-security",
     title: "Cyber Security Analyst",
     category: "Infrastruktur & Jaringan",
-    match: "78%", demand: 85, salary: "Rp 18-30 Jt / bulan",
+    demand: 85, salary: "Rp 18-30 Jt / bulan",
     skills: ["Penetration Testing", "Network Security", "Linux"],
     icon: <ShieldAlert className="w-10 h-10 text-red-500" />,
     color: "red",
-    desc: "Melindungi jaringan komputer dan sistem dari ancaman siber, hacker, dan potensi kebocoran data."
+    desc: "Melindungi jaringan komputer dan sistem dari ancaman siber, hacker, dan potensi kebocoran data.",
+    relatedRoles: ["Cyber Security", "Cloud Engineer", "DevOps Engineer"],
+    relatedArchetypes: ["protector", "logis", "builder"],
+    relatedJurusan: ["teknik informatika", "sistem informasi", "ilmu komputer"],
   },
   {
     id: "network-engineer",
     title: "Network System Engineer",
     category: "Infrastruktur & Jaringan",
-    match: "70%", demand: 80, salary: "Rp 10-20 Jt / bulan",
+    demand: 80, salary: "Rp 10-20 Jt / bulan",
     skills: ["Cisco", "Mikrotik", "Routing"],
     icon: <Network className="w-10 h-10 text-cyan-500" />,
     color: "cyan",
-    desc: "Membangun tulang punggung komunikasi data perusahaan, dari WiFi hingga jaringan kabel fiber optik berskala besar."
+    desc: "Membangun tulang punggung komunikasi data perusahaan, dari WiFi hingga jaringan kabel fiber optik berskala besar.",
+    relatedRoles: ["Cloud Engineer", "DevOps Engineer"],
+    relatedArchetypes: ["builder", "logis", "protector"],
+    relatedJurusan: ["teknik informatika", "teknik elektro", "sistem informasi"],
   },
 
   // Software Dev
@@ -50,31 +59,40 @@ const CAREERS = [
     id: "fullstack-dev",
     title: "Full-Stack Developer",
     category: "Software Development",
-    match: "82%", demand: 95, salary: "Rp 12-22 Jt / bulan",
+    demand: 95, salary: "Rp 12-22 Jt / bulan",
     skills: ["Next.js", "Node.js", "PostgreSQL"],
     icon: <Code className="w-10 h-10 text-emerald-500" />,
     color: "emerald",
-    desc: "Membangun fitur aplikasi dari tata letak depan (frontend) hingga logika database di belakang (backend)."
+    desc: "Membangun fitur aplikasi dari tata letak depan (frontend) hingga logika database di belakang (backend).",
+    relatedRoles: ["Full-Stack Developer", "Frontend Developer", "Backend Developer"],
+    relatedArchetypes: ["logis", "builder", "inovator"],
+    relatedJurusan: ["teknik informatika", "ilmu komputer", "sistem informasi"],
   },
   {
     id: "mobile-dev",
     title: "Mobile App Developer",
     category: "Software Development",
-    match: "75%", demand: 90, salary: "Rp 10-25 Jt / bulan",
+    demand: 90, salary: "Rp 10-25 Jt / bulan",
     skills: ["Flutter", "React Native", "Swift"],
-    icon: <Briefcase className="w-10 h-10 text-indigo-500" />, // Using Briefcase as generic since Mobile/Phone is omitted
+    icon: <Briefcase className="w-10 h-10 text-indigo-500" />,
     color: "indigo",
-    desc: "Menciptakan aplikasi canggih untuk smartphone Android dan iOS yang diunduh jutaan pengguna."
+    desc: "Menciptakan aplikasi canggih untuk smartphone Android dan iOS yang diunduh jutaan pengguna.",
+    relatedRoles: ["Mobile Developer", "Frontend Developer", "Full-Stack Developer"],
+    relatedArchetypes: ["logis", "kreatif", "builder"],
+    relatedJurusan: ["teknik informatika", "ilmu komputer", "sistem informasi"],
   },
   {
     id: "devops-engineer",
     title: "DevOps Engineer",
     category: "Software Development",
-    match: "80%", demand: 98, salary: "Rp 15-35 Jt / bulan",
+    demand: 98, salary: "Rp 15-35 Jt / bulan",
     skills: ["Docker", "CI/CD", "Linux"],
     icon: <Cpu className="w-10 h-10 text-violet-500" />,
     color: "violet",
-    desc: "Menjembatani tim programmer dan tim server agar rilis fitur baru berjalan otomatis, cepat, dan aman."
+    desc: "Menjembatani tim programmer dan tim server agar rilis fitur baru berjalan otomatis, cepat, dan aman.",
+    relatedRoles: ["DevOps Engineer", "Cloud Engineer", "Backend Developer"],
+    relatedArchetypes: ["builder", "logis", "protector"],
+    relatedJurusan: ["teknik informatika", "ilmu komputer", "sistem informasi"],
   },
 
   // Data & AI
@@ -82,31 +100,40 @@ const CAREERS = [
     id: "data-scientist",
     title: "Data Scientist",
     category: "Data & AI",
-    match: "85%", demand: 85, salary: "Rp 15-30 Jt / bulan",
+    demand: 85, salary: "Rp 15-30 Jt / bulan",
     skills: ["Python", "Machine Learning", "SQL"],
     icon: <ChartBar className="w-10 h-10 text-purple-500" />,
     color: "purple",
-    desc: "Menganalisis jutaan data acak untuk menemukan pola tersembunyi yang membantu keputusan bisnis."
+    desc: "Menganalisis jutaan data acak untuk menemukan pola tersembunyi yang membantu keputusan bisnis.",
+    relatedRoles: ["Data Scientist", "Data Analyst", "AI/ML Engineer"],
+    relatedArchetypes: ["data", "logis", "inovator"],
+    relatedJurusan: ["statistika", "matematika", "teknik informatika", "ilmu komputer"],
   },
   {
     id: "ai-engineer",
     title: "AI Specialist Engineer",
     category: "Data & AI",
-    match: "72%", demand: 100, salary: "Rp 20-40 Jt / bulan",
+    demand: 100, salary: "Rp 20-40 Jt / bulan",
     skills: ["PyTorch", "LLM", "Data Model"],
     icon: <Brain className="w-10 h-10 text-fuchsia-500" />,
     color: "fuchsia",
-    desc: "Melatih kecerdasan buatan (seperti ChatGPT) untuk mengenali teks, gambar, dan memberikan solusi otomatis."
+    desc: "Melatih kecerdasan buatan (seperti ChatGPT) untuk mengenali teks, gambar, dan memberikan solusi otomatis.",
+    relatedRoles: ["AI/ML Engineer", "Data Scientist"],
+    relatedArchetypes: ["logis", "inovator", "data"],
+    relatedJurusan: ["teknik informatika", "ilmu komputer", "matematika"],
   },
   {
     id: "data-engineer",
     title: "Data Engineer",
     category: "Data & AI",
-    match: "65%", demand: 90, salary: "Rp 12-25 Jt / bulan",
+    demand: 90, salary: "Rp 12-25 Jt / bulan",
     skills: ["Apache Spark", "Hadoop", "ETL"],
     icon: <Database className="w-10 h-10 text-amber-500" />,
     color: "amber",
-    desc: "Membangun dan merawat pipa aliran data raksasa agar selalu bersih dan siap digunakan oleh tim analis."
+    desc: "Membangun dan merawat pipa aliran data raksasa agar selalu bersih dan siap digunakan oleh tim analis.",
+    relatedRoles: ["Data Analyst", "Data Scientist", "Backend Developer"],
+    relatedArchetypes: ["data", "builder", "logis"],
+    relatedJurusan: ["teknik informatika", "ilmu komputer", "sistem informasi"],
   },
 
   // Kreatif & Desain
@@ -114,33 +141,85 @@ const CAREERS = [
     id: "uiux-designer",
     title: "UI/UX Product Designer",
     category: "Kreatif & Desain",
-    match: "88%", demand: 85, salary: "Rp 10-20 Jt / bulan",
+    demand: 85, salary: "Rp 10-20 Jt / bulan",
     skills: ["Figma", "Design System", "User Research"],
     icon: <Palette className="w-10 h-10 text-orange-500" />,
     color: "orange",
-    desc: "Menyulap ide rumit menjadi tampilan aplikasi yang cantik, intuitif, dan membuat pengguna betah."
+    desc: "Menyulap ide rumit menjadi tampilan aplikasi yang cantik, intuitif, dan membuat pengguna betah.",
+    relatedRoles: ["UI/UX Designer", "Frontend Developer", "Product Manager"],
+    relatedArchetypes: ["kreatif", "komunikator", "inovator"],
+    relatedJurusan: ["dkv", "desain komunikasi visual", "desain", "multimedia", "seni rupa"],
   },
   {
     id: "frontend-engineer",
     title: "Frontend Web Engineer",
     category: "Kreatif & Desain",
-    match: "80%", demand: 90, salary: "Rp 10-18 Jt / bulan",
+    demand: 90, salary: "Rp 10-18 Jt / bulan",
     skills: ["React", "TailwindCSS", "TypeScript"],
     icon: <LayoutTemplate className="w-10 h-10 text-pink-500" />,
     color: "pink",
-    desc: "Mewujudkan desain UI/UX menjadi kode interaktif yang hidup di browser pengguna dengan animasi mulus."
+    desc: "Mewujudkan desain UI/UX menjadi kode interaktif yang hidup di browser pengguna dengan animasi mulus.",
+    relatedRoles: ["Frontend Developer", "UI/UX Designer", "Full-Stack Developer"],
+    relatedArchetypes: ["kreatif", "logis", "builder"],
+    relatedJurusan: ["dkv", "desain komunikasi visual", "teknik informatika", "multimedia"],
   },
   {
     id: "game-developer",
     title: "Game Logic Developer",
     category: "Kreatif & Desain",
-    match: "70%", demand: 75, salary: "Rp 8-20 Jt / bulan",
+    demand: 75, salary: "Rp 8-20 Jt / bulan",
     skills: ["Unity", "C#", "3D Math"],
     icon: <Sparkles className="w-10 h-10 text-yellow-500" />,
     color: "yellow",
-    desc: "Membuat mekanika permainan, kecerdasan musuh (NPC), dan sistem skor untuk video game interaktif."
+    desc: "Membuat mekanika permainan, kecerdasan musuh (NPC), dan sistem skor untuk video game interaktif.",
+    relatedRoles: ["Game Developer", "Frontend Developer", "Mobile Developer"],
+    relatedArchetypes: ["kreatif", "logis", "inovator"],
+    relatedJurusan: ["teknik informatika", "dkv", "multimedia", "ilmu komputer"],
   }
 ];
+
+// Dynamic matching algorithm based on user profile
+function computeMatchScore(
+  career: typeof CAREERS[0],
+  userProfile: { roleInterests?: string[]; archetype?: string; jurusan?: string; pendidikan?: string } | null
+): number {
+  if (!userProfile) return 0; // No profile = no match shown
+
+  let score = 0;
+  let factors = 0;
+
+  // 1. Role Interest match (heaviest weight: 50 points)
+  const userRoles = (userProfile.roleInterests || []).map(r => r.toLowerCase());
+  if (userRoles.length > 0) {
+    const roleMatches = career.relatedRoles.filter(r => 
+      userRoles.some(ur => ur.includes(r.toLowerCase()) || r.toLowerCase().includes(ur))
+    );
+    score += Math.min(50, (roleMatches.length / Math.max(1, career.relatedRoles.length)) * 70);
+    factors++;
+  }
+
+  // 2. Archetype match (25 points)
+  if (userProfile.archetype) {
+    if (career.relatedArchetypes.includes(userProfile.archetype.toLowerCase())) {
+      const archetypeIdx = career.relatedArchetypes.indexOf(userProfile.archetype.toLowerCase());
+      score += archetypeIdx === 0 ? 25 : archetypeIdx === 1 ? 18 : 12;
+    }
+    factors++;
+  }
+
+  // 3. Jurusan/Educational background match (25 points)
+  const userJurusan = (userProfile.jurusan || userProfile.pendidikan || '').toLowerCase();
+  if (userJurusan) {
+    const jurusanMatch = career.relatedJurusan.some(j => 
+      userJurusan.includes(j) || j.includes(userJurusan)
+    );
+    if (jurusanMatch) score += 25;
+    factors++;
+  }
+
+  if (factors === 0) return 0;
+  return Math.min(99, Math.max(10, Math.round(score)));
+}
 
 export default function ExploreCareers() {
   const router = useRouter();
@@ -157,41 +236,55 @@ export default function ExploreCareers() {
     reason: string;
     skills: string[];
   } | null>(null);
+  // User profile for matching
   const [userName, setUserName] = useState('');
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  useEffect(() => {
+    // Always load user profile for matching
+    const storedData = localStorage.getItem('skillpath_onboarding_data');
+    if (storedData) {
+      const parsed = JSON.parse(storedData);
+      setUserProfile(parsed);
+      if (parsed.displayName) setUserName(parsed.displayName);
+    }
+  }, []);
 
   useEffect(() => {
     const showAi = searchParams.get('showAiResult');
-    if (showAi && !aiResult && !aiLoading) {
-      const storedData = localStorage.getItem('skillpath_onboarding_data');
-      if (storedData) {
-        setAiLoading(true);
-        const parsed = JSON.parse(storedData);
-        if (parsed.displayName) setUserName(parsed.displayName);
-        
-        // Simulating the AI call to ensure fluid UI demo since we only have limit API keys
-        fetch('/api/recommend', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(parsed)
-        })
-        .then(res => res.json())
-        .then(result => {
-          if (result.careerTitle) {
-            setAiResult(result);
-          }
-        })
-        .catch(err => console.error("AI Fetch Error:", err))
-        .finally(() => setAiLoading(false));
-      }
+    if (showAi && !aiResult && !aiLoading && userProfile) {
+      setAiLoading(true);
+      
+      fetch('/api/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userProfile)
+      })
+      .then(res => res.json())
+      .then(result => {
+        if (result.careerTitle) {
+          setAiResult(result);
+        }
+      })
+      .catch(err => console.error("AI Fetch Error:", err))
+      .finally(() => setAiLoading(false));
     }
-  }, [searchParams, aiResult, aiLoading]);
+  }, [searchParams, aiResult, aiLoading, userProfile]);
 
-  const filteredCareers = CAREERS.filter(career => {
-    const matchCategory = selectedCategory === "Semua" || career.category === selectedCategory;
-    const matchSearch = career.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        career.skills.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchCategory && matchSearch;
-  });
+  // Compute match scores for each career
+  const careersWithScores = CAREERS.map(career => ({
+    ...career,
+    matchScore: computeMatchScore(career, userProfile),
+  }));
+
+  const filteredCareers = careersWithScores
+    .filter(career => {
+      const matchCategory = selectedCategory === "Semua" || career.category === selectedCategory;
+      const matchSearch = career.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          career.skills.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchCategory && matchSearch;
+    })
+    .sort((a, b) => b.matchScore - a.matchScore); // Sort by match score (highest first)
 
   return (
     <div className="relative min-h-screen">
@@ -356,9 +449,11 @@ export default function ExploreCareers() {
                       "px-3 py-1.5 rounded-full text-xs font-black tracking-wide border transition-all",
                       isMatched 
                         ? "bg-amber-100 text-[#5D1636] border-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.8)]" 
-                        : "bg-white/50 text-slate-700 border-white/60"
+                        : career.matchScore > 0
+                          ? "bg-white/50 text-slate-700 border-white/60"
+                          : "bg-white/30 text-slate-400 border-white/40"
                     )}>
-                       {isMatched ? `${aiResult.matchScore}%` : career.match} Match
+                       {isMatched ? `${aiResult.matchScore}%` : career.matchScore > 0 ? `${career.matchScore}%` : '—'} Match
                     </div>
                   </div>
 
@@ -419,7 +514,10 @@ export default function ExploreCareers() {
                     <div>
                       <SheetTitle className="text-3xl font-black text-slate-900 leading-tight mb-1">{selectedCareer.title}</SheetTitle>
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-black">
-                         <Sparkles size={12} /> {selectedCareer.match} Match
+                         <Sparkles size={12} /> {(() => {
+                           const sc = computeMatchScore(selectedCareer, userProfile);
+                           return sc > 0 ? `${sc}% Match` : 'Belum ada profil';
+                         })()}
                       </span>
                     </div>
                   </div>
