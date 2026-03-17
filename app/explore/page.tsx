@@ -55,6 +55,7 @@ export default function ExploreCareers() {
     reason: string;
     skills: string[];
   } | null>(null);
+  const [aiOptions, setAiOptions] = useState<any[] | null>(null);
   const [userName, setUserName] = useState('');
   const [userProfile, setUserProfile] = useState<any>(null);
 
@@ -85,12 +86,14 @@ export default function ExploreCareers() {
             body: JSON.stringify(userProfile)
           });
           const result = await res.json();
-          if (result.careerTitle) {
+          if (result.recommendations && Array.isArray(result.recommendations)) {
+            setAiOptions(result.recommendations);
+          } else if (result.careerTitle) {
+            // Fallback just in case Groq hallucinates the old format
             setAiResult(result);
-            // We save it in a separate effect below once currentUser is ready
           }
         } catch (err) {
-          console.error("AI Fetch Error:", err);
+          console.warn("AI Fetch Error:", err);
         } finally {
           setAiLoading(false);
           // Remove param from URL so it doesn't refetch on reload
@@ -164,7 +167,7 @@ export default function ExploreCareers() {
 
         {/* AI Result Section */}
         <AnimatePresence>
-          {(aiLoading || aiResult) && (
+          {(aiLoading || aiResult || aiOptions) && (
             <motion.section
               initial={{ opacity: 0, y: -20, height: 0 }}
               animate={{ opacity: 1, y: 0, height: 'auto' }}
@@ -186,11 +189,56 @@ export default function ExploreCareers() {
                            </div>
                          </div>
                          <h3 className="text-2xl font-black mb-2 uppercase tracking-tighter italic text-center">
-                           {userName ? `Tunggu sebentar, ${userName}...` : 'Menghitung Masa Depan...'}
+                           {userName ? `Tunggu sebentar, ${userName}...` : 'Sedang Meracik Opsi Karir...'}
                          </h3>
-                         <p className="text-white/80 font-bold animate-pulse text-sm text-center">SkillPath AI sedang menganalisis arketipe dan minatmu.</p>
+                         <p className="text-white/80 font-bold animate-pulse text-sm text-center">SkillPath AI sedang mencarikan 3 jalur karir terbaik untukmu.</p>
                       </div>
-                    ) : aiResult && (
+                    ) : aiOptions ? (
+                      <div className="w-full">
+                        <div className="text-center mb-8">
+                          <h2 className="text-3xl md:text-4xl font-black tracking-tighter italic mb-2">Pilih Impian Karirmu</h2>
+                          <p className="text-white/80 font-medium">Berdasarkan profilmu, ini 3 rekomendasi terbaik dari AI.</p>
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                          {aiOptions.map((opt, idx) => (
+                            <motion.div
+                              key={idx}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: idx * 0.1 }}
+                              className="bg-white/10 border border-white/20 rounded-3xl p-6 backdrop-blur-md flex flex-col hover:bg-white/15 transition-colors group"
+                            >
+                              <div className="flex justify-between items-start mb-4">
+                                <div className="p-3 bg-white/10 rounded-2xl group-hover:scale-110 transition-transform">
+                                  <Sparkles size={24} className="text-amber-400" />
+                                </div>
+                                <div className="px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-xs font-black border border-amber-500/30">
+                                  {opt.matchScore}% Match
+                                </div>
+                              </div>
+                              <h3 className="text-2xl font-black mb-2">{opt.careerTitle}</h3>
+                              <p className="text-white/70 text-sm mb-6 flex-1 italic">&ldquo;{opt.reason}&rdquo;</p>
+                              
+                              <div className="flex flex-wrap gap-1.5 mb-6">
+                                {opt.skills.map((s: string) => (
+                                  <span key={s} className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-md text-[10px] font-bold text-white/60">{s}</span>
+                                ))}
+                              </div>
+
+                              <Button 
+                                onClick={() => {
+                                  setAiResult(opt);
+                                  setAiOptions(null);
+                                }}
+                                className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl"
+                              >
+                                Pilih Karir Ini
+                              </Button>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : aiResult ? (
                       <>
                         <div className="flex-1 space-y-6 w-full">
                            <div className="flex items-center gap-3 flex-wrap">
@@ -241,7 +289,7 @@ export default function ExploreCareers() {
                            </Button>
                         </div>
                       </>
-                    )}
+                    ) : null}
                  </div>
                </div>
             </motion.section>

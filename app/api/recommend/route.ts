@@ -15,22 +15,26 @@ export async function POST(req: Request) {
 - Role yang SECARA EKSPLISIT Diminati Pengguna: ${roleInterests?.join(', ') || 'Belum diisi'}
 - Minat & Hobi: ${minat}
 
-ATURAN WAJIB:
-1. Anda WAJIB merekomendasikan karir dari daftar "Role yang Diminati" di atas. JANGAN merekomendasikan karir di luar daftar tersebut.
-2. Jika pengguna memilih "UI/UX Designer", rekomendasikan "UI/UX Designer". Jika memilih "Frontend Developer", rekomendasikan "Frontend Developer". PRIORITASKAN pilihan role pengguna.
-3. Pertimbangkan jurusan/pendidikan pengguna. Misalnya, jurusan DKV (Desain Komunikasi Visual) sangat cocok dengan UI/UX Design, Frontend, atau peran kreatif.
-4. Berikan skor kecocokan (70-100).
-5. Berikan alasan singkat kenapa cocok (max 2 kalimat, Bahasa Indonesia, nada motivatif dan personal).
+1. Anda WAJIB merekomendasikan 3 pilihan karir yang berbeda namun relevan dengan profil pengguna. Prioritaskan setidaknya 1-2 karir dari daftar "Role yang Diminati" jika ada.
+2. Setiap rekomendasi harus berbeda fokusnya (misal: satu lebih teknis, satu lebih manajerial/kreatif, satu spesialis).
+3. Pertimbangkan jurusan/pendidikan pengguna secara mendalam.
+4. Berikan skor kecocokan (70-100) yang realistis untuk setiap opsi.
+5. Berikan alasan singkat kenapa karir tersebut cocok (max 2 kalimat, Bahasa Indonesia, nada motivatif).
 6. List 3 skill teknis utama yang harus dipelajari khusus untuk karir tersebut.
 
 Format output WAJIB JSON:
 {
-  "careerTitle": "Nama Karir (harus dari daftar role yang diminati pengguna)",
-  "matchScore": number,
-  "reason": "Alasan singkat kenapa cocok dalam Bahasa Indonesia",
-  "skills": ["Skill 1", "Skill 2", "Skill 3"]
+  "recommendations": [
+    {
+      "careerTitle": "Nama Karir 1",
+      "matchScore": number,
+      "reason": "Alasan singkat kenapa cocok...",
+      "skills": ["Skill A", "Skill B", "Skill C"]
+    },
+    // tambahkan 2 rekomendasi lagi dengan format persis sama
+  ]
 }
-HANYA kembalikan JSON murni, jangan ada teks lain di luar JSON.`;
+HANYA kembalikan JSON murni, jangan ada teks lain.`;
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',

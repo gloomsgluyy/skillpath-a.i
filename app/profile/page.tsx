@@ -113,8 +113,16 @@ export default function ProfileDashboard() {
                     </div>
                   </div>
 
-                  <h1 className="text-3xl font-black mb-1">{displayName}</h1>
-                  <p className="text-amber-400 font-bold text-sm uppercase tracking-widest">{rec?.careerTitle || profile?.pendidikan || 'Explorer'}</p>
+                  <div className="flex flex-col items-center gap-1 mb-2">
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full mb-3">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                      <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Impian Karir & Target</span>
+                    </div>
+                    <h1 className="text-3xl font-black">{displayName}</h1>
+                    <p className="text-xl md:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-orange-500 uppercase tracking-tight text-center max-w-[90%]">
+                      {rec?.careerTitle || profile?.pendidikan || 'Explorer'}
+                    </p>
+                  </div>
 
                   <div className="w-full h-px bg-white/10 my-8" />
 

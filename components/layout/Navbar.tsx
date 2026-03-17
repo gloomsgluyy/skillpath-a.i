@@ -6,6 +6,7 @@ import { motion } from 'motion/react';
 import { Compass, Brain, LayoutList, BookOpen, FolderKanban, LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
+import { getAIRecommendation } from '@/lib/firestore';
 
 const NAV_LINKS = [
   { label: 'Explore Careers', href: '/explore', icon: <Compass size={14} /> },
@@ -17,6 +18,15 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const { currentUser, signInWithGoogle, logout } = useAuth();
+  const [targetCareer, setTargetCareer] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (currentUser?.uid) {
+      getAIRecommendation(currentUser.uid)
+        .then(rec => setTargetCareer(rec?.careerTitle || null))
+        .catch(() => {});
+    }
+  }, [currentUser]);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
@@ -66,6 +76,12 @@ export function Navbar() {
         <div className="flex items-center gap-3 shrink-0">
           {currentUser ? (
             <div className="flex items-center gap-2">
+              {targetCareer && (
+                <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-[#5D1636] border border-amber-500/30 rounded-full shadow-[0_0_10px_rgba(251,191,36,0.2)]">
+                  <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider">🎯 Target:</span>
+                  <span className="text-xs font-bold text-white truncate max-w-[120px]">{targetCareer}</span>
+                </div>
+              )}
               <button
                 onClick={() => {
                   // Clear old data so fresh onboarding starts
