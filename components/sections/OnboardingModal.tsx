@@ -40,7 +40,7 @@ const ROLE_OPTIONS = [
 ];
 
 export default function OnboardingModal() {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, currentUser } = useAuth();
   const router = useRouter();
   
   const [data, setData] = useState<OnboardingState>({
@@ -95,7 +95,11 @@ export default function OnboardingModal() {
         displayName: data.displayName,
       }));
 
-      await signInWithGoogle();
+      // If not logged in, wait for login
+      if (!currentUser) {
+        await signInWithGoogle();
+      }
+      
       closeModal();
       router.push('/explore?showAiResult=true');
     } catch (error) {

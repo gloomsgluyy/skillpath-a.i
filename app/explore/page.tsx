@@ -73,20 +73,11 @@ export default function ExploreCareers() {
     const showAi = searchParams.get('showAiResult');
 
     async function loadOrFetchRecommendation() {
-      if (!userProfile) return;
-
-      // Try loading from Firestore first if user is logged in
-      if (currentUser?.uid) {
-        const saved = await getAIRecommendation(currentUser.uid);
-        if (saved && !showAi) {
-          setAiResult({ careerTitle: saved.careerTitle, matchScore: saved.matchScore, reason: saved.reason, skills: saved.skills });
-          return;
-        }
-      }
-
-      // Only fetch from AI if showAiResult param is present and we don't have results
-      if (showAi && !aiResult && !aiLoading) {
+      // 1. If we are explicitly told to fetch a new AI result
+      if (showAi && userProfile && !aiLoading) {
         setAiLoading(true);
+        // Clear any old UI state
+        setAiResult(null); 
         try {
           const res = await fetch('/api/recommend', {
             method: 'POST',
@@ -96,15 +87,27 @@ export default function ExploreCareers() {
           const result = await res.json();
           if (result.careerTitle) {
             setAiResult(result);
-            // Persist to Firestore if logged in
-            if (currentUser?.uid) {
-              await saveAIRecommendation(currentUser.uid, result).catch(console.error);
-            }
+            // We save it in a separate effect below once currentUser is ready
           }
         } catch (err) {
           console.error("AI Fetch Error:", err);
         } finally {
           setAiLoading(false);
+          // Remove param from URL so it doesn't refetch on reload
+          window.history.replaceState({}, '', '/explore');
+        }
+        return;
+      }
+
+      // 2. If we already have a result loaded (and not forcing a new fetch), do nothing
+      if (aiResult) return;
+
+      // 3. Try loading from Firestore first if user is logged in
+      if (currentUser?.uid) {
+        const saved = await getAIRecommendation(currentUser.uid);
+        if (saved) {
+          setAiResult({ careerTitle: saved.careerTitle, matchScore: saved.matchScore, reason: saved.reason, skills: saved.skills });
+          return;
         }
       }
     }
@@ -112,6 +115,18 @@ export default function ExploreCareers() {
     loadOrFetchRecommendation();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, userProfile, currentUser]);
+
+  // Save AI result to Firestore once we have BOTH the result and the user ID
+  useEffect(() => {
+    if (aiResult && currentUser?.uid) {
+      // Check if it's already saved to prevent infinite writes
+      getAIRecommendation(currentUser.uid).then(saved => {
+        if (!saved || saved.careerTitle !== aiResult.careerTitle) {
+          saveAIRecommendation(currentUser.uid, aiResult).catch(console.error);
+        }
+      });
+    }
+  }, [aiResult, currentUser]);
 
   // Compute match scores and sort
   const scoredCareers = useMemo(() => {
