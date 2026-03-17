@@ -5,7 +5,9 @@ const groq = new Groq({apiKey: process.env.GROQ_API_KEY});
 
 export async function POST(req: Request) {
   try {
-    const { topic, durationDays = 7 } = await req.json();
+    const body = await req.json();
+    const topic = body.career || body.topic;
+    const durationDays = body.durationDays || 14;
 
     const prompt = `
 Create a ${durationDays}-day Learning Journey task checklist for the specific topic: "${topic}".

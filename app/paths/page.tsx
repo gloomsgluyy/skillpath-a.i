@@ -1,296 +1,280 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { useSearchParams } from 'next/navigation';
+import { motion } from 'motion/react';
+import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
-import { Bot, Send, ArrowLeft, Save, Download, Sparkles, CheckCircle2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Bot, Send, ArrowLeft, Sparkles, CheckCircle2, Loader2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { getSkillPath, saveSkillPath, updateSkillPathNode, getAIRecommendation, type SkillPathNode } from '@/lib/firestore';
 
-interface Node {
-  id: string;
-  title: string;
-  description: string;
-  estimatedHours: number;
-  prerequisites: string[];
-  status: 'locked' | 'active' | 'completed';
-  x: number;
-  y: number;
+interface ChatMessage {
+  role: 'user' | 'ai';
+  content: string;
 }
 
 export default function SkillPathsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [careerTitle, setCareerTitle] = useState("Cloud Architecture Engineer");
-  
-  // Chat State
-  const [messages, setMessages] = useState<{role: 'user'|'ai', text: string}[]>([
-    { role: 'ai', text: 'Halo! Saya AI Consultant kamu. Saya telah menyusun Neural Roadmap ini untuk karir Cloud Architect. Ada bagian yang ingin dibahas?' }
-  ]);
-  const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const { currentUser } = useAuth();
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Canvas State (Pan & Zoom)
-  const [scale, setScale] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  
-  // Nodes State (Mock data until API is fully wired)
-  const [nodes, setNodes] = useState<Node[]>([
-    { id: '1', title: 'Linux Basics', description: 'File systems, permissions, shell scripting', estimatedHours: 20, prerequisites: [], status: 'completed', x: 200, y: 100 },
-    { id: '2', title: 'Computer Networking', description: 'OSI Model, TCP/IP, DNS, Routing', estimatedHours: 25, prerequisites: ['1'], status: 'active', x: 200, y: 250 },
-    { id: '3', title: 'Docker Containers', description: 'Containerization, images, Dockerfile', estimatedHours: 15, prerequisites: ['2'], status: 'locked', x: 100, y: 400 },
-    { id: '4', title: 'Cloud Concepts', description: 'IaaS, PaaS, SaaS, AWS/GCP Intro', estimatedHours: 20, prerequisites: ['2'], status: 'locked', x: 300, y: 400 },
-    { id: '5', title: 'Kubernetes', description: 'Orchestration, Pods, Deployments', estimatedHours: 40, prerequisites: ['3', '4'], status: 'locked', x: 200, y: 550 },
-  ]);
+  const [career, setCareer] = useState('');
+  const [nodes, setNodes] = useState<SkillPathNode[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputMsg, setInputMsg] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
 
+  // Load skill path from Firestore or generate new one
   useEffect(() => {
-    // Look for career param
-    const c = searchParams.get('career');
-    if (c) {
-      if (c === 'fullstack-dev') setCareerTitle("Full-Stack Developer");
-      else if (c.includes('cyber')) setCareerTitle("Cyber Security Analyst");
-      
-      // In a real app we'd fetch from /api/generate-path here
+    async function load() {
+      if (!currentUser?.uid) { setLoading(false); return; }
+
+      // Check if there's an existing skill path
+      const existingPath = await getSkillPath(currentUser.uid);
+      if (existingPath) {
+        setCareer(existingPath.targetCareer);
+        setNodes(existingPath.nodes || []);
+        setMessages([{ role: 'ai', content: `Selamat datang kembali! 🎯 Ini adalah roadmap ${existingPath.targetCareer}-mu. Klik pada node untuk menandai progress. Tanya saya jika butuh bantuan!` }]);
+        setLoading(false);
+        return;
+      }
+
+      // Get career from URL param or AI recommendation
+      const careerParam = searchParams.get('career');
+      let targetCareer = careerParam || '';
+
+      if (!targetCareer) {
+        const rec = await getAIRecommendation(currentUser.uid);
+        if (rec) targetCareer = rec.careerTitle;
+      }
+
+      if (!targetCareer) {
+        targetCareer = 'Full-Stack Developer'; // fallback
+      }
+
+      setCareer(targetCareer);
+      setGenerating(true);
+      setMessages([{ role: 'ai', content: `Hai! 🚀 Saya sedang membuatkan roadmap belajar untuk menjadi **${targetCareer}**. Tunggu sebentar...` }]);
+
+      try {
+        const res = await fetch('/api/generate-path', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ career: targetCareer })
+        });
+        const data = await res.json();
+
+        if (data.nodes && Array.isArray(data.nodes)) {
+          const pathNodes: SkillPathNode[] = data.nodes.map((n: any, i: number) => ({
+            id: `node-${i}`,
+            title: n.title || `Step ${i + 1}`,
+            description: n.description || '',
+            estimatedHours: n.estimatedHours || 10,
+            prerequisites: n.prerequisites || [],
+            status: i === 0 ? 'active' : 'locked',
+            x: 50 + (i % 3) * 200 + (Math.random() * 40 - 20),
+            y: 80 + Math.floor(i / 3) * 160,
+          }));
+          setNodes(pathNodes);
+          await saveSkillPath(currentUser.uid, targetCareer, pathNodes);
+          setMessages(prev => [...prev, { role: 'ai', content: `✅ Roadmap ${targetCareer} sudah jadi! Ada ${pathNodes.length} tahapan yang perlu kamu kuasai. Mulai dari yang paling atas ya!` }]);
+        }
+      } catch (err) {
+        setMessages(prev => [...prev, { role: 'ai', content: '⚠️ Gagal membuat roadmap. Coba lagi nanti.' }]);
+      }
+      setGenerating(false);
+      setLoading(false);
     }
-  }, [searchParams]);
+    load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim()) return;
-    
-    setMessages(prev => [...prev, { role: 'user', text: inputValue }]);
-    setInputValue('');
-    setIsTyping(true);
-    
-    setTimeout(() => {
-      setMessages(prev => [...prev, { 
-        role: 'ai', 
-        text: 'Menarik! Fokus ke keamanan siber memang krusial. Saya akan menyorot (highlight) modul Security di roadmap bagian kanan.' 
-      }]);
-      setIsTyping(false);
-      // Simulate highlighting a node
-      setNodes(prev => prev.map(n => n.id === '2' ? { ...n, status: 'active' } : n));
-    }, 1500);
+  const handleNodeClick = async (node: SkillPathNode) => {
+    if (!currentUser?.uid || node.status === 'locked') return;
+
+    if (node.status === 'active') {
+      const updatedNodes = nodes.map(n => {
+        if (n.id === node.id) return { ...n, status: 'completed' as const };
+        return n;
+      });
+      // Unlock next locked node
+      const nextLocked = updatedNodes.find(n => n.status === 'locked');
+      if (nextLocked) nextLocked.status = 'active';
+
+      setNodes(updatedNodes);
+      await updateSkillPathNode(currentUser.uid, node.id, 'completed');
+      if (nextLocked) {
+        await saveSkillPath(currentUser.uid, career, updatedNodes);
+      }
+      setMessages(prev => [...prev, { role: 'ai', content: `🎉 Hebat! Kamu sudah menyelesaikan "${node.title}". ${nextLocked ? `Selanjutnya: "${nextLocked.title}"` : 'Semua tahapan selesai! 🏆'}` }]);
+    }
   };
 
-  const handleZoom = (dz: number) => {
-    setScale(s => Math.min(Math.max(0.5, s + dz), 2));
+  const handleSendMessage = async () => {
+    if (!inputMsg.trim() || chatLoading) return;
+    const userMsg = inputMsg.trim();
+    setInputMsg('');
+    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setChatLoading(true);
+
+    try {
+      const res = await fetch('/api/generate-path', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ career, question: userMsg })
+      });
+      const data = await res.json();
+      setMessages(prev => [...prev, { role: 'ai', content: data.answer || data.nodes ? 'Roadmap telah diperbarui!' : 'Maaf, saya tidak bisa menjawab saat ini.' }]);
+    } catch {
+      setMessages(prev => [...prev, { role: 'ai', content: 'Koneksi error. Coba lagi.' }]);
+    }
+    setChatLoading(false);
   };
 
-  return (
-    <div className="flex h-screen w-full bg-[#0a0514] overflow-hidden text-white font-sans">
-      {/* Background Architectural Grid Pattern */}
-      <div 
-        className="absolute inset-0 z-0 opacity-10" 
-        style={{ 
-          backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', 
-          backgroundSize: '40px 40px' 
-        }} 
-      />
-      <div className="absolute inset-0 z-0 bg-gradient-to-r from-transparent to-[#1a0f2e]/80 pointer-events-none" />
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-      {/* Left Column: AI Consultant Chatbot Panel (30%) */}
-      <div className="relative z-10 w-full md:w-[30%] h-full bg-black/40 backdrop-blur-2xl border-r border-[#feb47b]/30 shadow-[10px_0_30px_rgba(254,180,123,0.05)] flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-white/10 flex items-center gap-4 bg-white/5">
-          <button onClick={() => router.back()} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-             <ArrowLeft size={20} />
-          </button>
-          <div className="relative">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
-               <Bot size={24} className="text-white" />
-            </div>
-            <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-[#0a0514]"></span>
-            </span>
-          </div>
-          <div>
-            <h2 className="font-display font-black text-lg text-white">Pathfinder AI</h2>
-            <p className="text-xs font-bold text-emerald-400 tracking-widest uppercase">Consultant Online</p>
-          </div>
-        </div>
-
-        {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
-          {messages.map((msg, i) => (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} 
-              key={i} 
-              className={cn("flex w-full", msg.role === 'user' ? "justify-end" : "justify-start")}
-            >
-              <div className={cn(
-                "max-w-[85%] p-4 text-sm font-medium leading-relaxed rounded-2xl",
-                msg.role === 'user' 
-                  ? "bg-white/10 border border-white/20 text-white rounded-tr-sm"
-                  : "bg-gradient-to-br from-[#2a1b3d] to-[#1a0f2e] border border-[#feb47b]/20 text-slate-200 rounded-tl-sm shadow-xl"
-              )}>
-                {msg.text}
-              </div>
-            </motion.div>
-          ))}
-          
-          {isTyping && (
-             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                <div className="bg-[#1a0f2e] border border-white/10 px-4 py-3 rounded-2xl rounded-tl-sm flex gap-1.5 items-center">
-                   <div className="w-2 h-2 rounded-full bg-[#feb47b] animate-bounce" style={{ animationDelay: '0ms' }} />
-                   <div className="w-2 h-2 rounded-full bg-[#feb47b] animate-bounce" style={{ animationDelay: '150ms' }} />
-                   <div className="w-2 h-2 rounded-full bg-[#feb47b] animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-             </motion.div>
-          )}
-        </div>
-
-        {/* Input Field */}
-        <div className="p-4 bg-black/20">
-          <form onSubmit={handleSendMessage} className="relative flex items-center">
-            <input 
-              type="text" 
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Tanya soal roadmap ini..."
-              className="w-full bg-transparent border-b-2 border-white/20 focus:border-[#feb47b] px-4 py-3 text-sm text-white focus:outline-none transition-colors placeholder:text-white/30"
-            />
-            <button 
-              type="submit" 
-              disabled={!inputValue.trim() || isTyping}
-              className="absolute right-0 p-3 text-[#feb47b] hover:text-white transition-colors disabled:opacity-50"
-            >
-              <Send size={18} />
-            </button>
-          </form>
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[#0a0e1a] text-white pt-24">
+        <Navbar />
+        <div className="max-w-xl mx-auto text-center py-20 px-4">
+          <Sparkles size={48} className="text-amber-400 mx-auto mb-6" />
+          <h2 className="text-3xl font-black mb-4">Login Diperlukan</h2>
+          <p className="text-white/60 mb-8">Kamu perlu login untuk mengakses Skill Paths yang dipersonalisasi.</p>
+          <Button onClick={() => router.push('/')} className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-8 py-3 rounded-xl">
+            Kembali ke Home
+          </Button>
         </div>
       </div>
+    );
+  }
 
-      {/* Right Column: Neural Roadmap Canvas (70%) */}
-      <div className="relative z-10 flex-1 h-full cursor-grab active:cursor-grabbing overflow-hidden">
-         {/* Canvas Header */}
-         <div className="absolute top-6 left-8 z-20 pointer-events-none">
-            <h1 className="text-3xl md:text-5xl font-black font-display tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/50 drop-shadow-xl">
-               Neural Roadmap
-            </h1>
-            <p className="text-[#feb47b] font-bold tracking-widest uppercase text-sm mt-2">{careerTitle}</p>
-         </div>
+  return (
+    <div className="min-h-screen bg-[#0a0e1a] text-white">
+      <Navbar />
+      <div className="flex h-[calc(100vh-80px)] pt-20">
+        {/* Left: Chat Panel (30%) */}
+        <div className="w-full lg:w-[30%] flex flex-col border-r border-white/10 bg-white/5 backdrop-blur-xl">
+          <div className="p-4 border-b border-white/10 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
+              <Bot size={20} className="text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm">AI Consultant</h3>
+              <span className="text-[10px] text-emerald-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" /> Online
+              </span>
+            </div>
+          </div>
 
-         {/* Zoom Controls */}
-         <div className="absolute top-6 right-6 z-20 flex gap-2">
-            <button onClick={() => handleZoom(-0.1)} className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center font-bold text-xl shadow-xl transition-all">-</button>
-            <button onClick={() => handleZoom(0.1)} className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center font-bold text-xl shadow-xl transition-all">+</button>
-         </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {messages.map((msg, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn("max-w-[90%] rounded-2xl px-4 py-3 text-sm", msg.role === 'ai' ? "bg-white/10 mr-auto" : "bg-amber-500/20 ml-auto border border-amber-500/30")}
+              >
+                {msg.content}
+              </motion.div>
+            ))}
+            {chatLoading && (
+              <div className="flex items-center gap-2 text-white/50 text-sm"><Loader2 size={16} className="animate-spin" /> Mengetik...</div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
 
-         {/* Interactive Canvas Area */}
-         <motion.div 
-            drag 
-            dragConstraints={{ left: -1000, right: 1000, top: -1000, bottom: 1000 }}
-            className="w-full h-full relative"
-            style={{ scale }}
-            animate={{ x: pan.x, y: pan.y }}
-         >
-            {/* Draw Connecting Lines (SVG) */}
-            <svg className="absolute inset-0 w-[2000px] h-[2000px] pointer-events-none" style={{ left: '50%', top: '50%', transform: 'translate(-10rem, -5rem)' }}>
-               {nodes.map(node => 
-                  node.prerequisites.map(preId => {
-                     const preNode = nodes.find(n => n.id === preId);
-                     if (!preNode) return null;
-                     
-                     // If both are completed/active, line glows
-                     const isLineActive = preNode.status !== 'locked' && node.status !== 'locked';
-                     
-                     return (
-                        <path 
-                           key={`${preId}-${node.id}`}
-                           d={`M ${preNode.x} ${preNode.y} C ${preNode.x} ${(preNode.y + node.y)/2}, ${node.x} ${(preNode.y + node.y)/2}, ${node.x} ${node.y}`}
-                           fill="none"
-                           stroke={isLineActive ? "url(#glowGradient)" : "rgba(255,255,255,0.1)"}
-                           strokeWidth={isLineActive ? 3 : 2}
-                           className={isLineActive ? "drop-shadow-[0_0_8px_rgba(254,180,123,0.8)]" : ""}
-                        />
-                     );
-                  })
-               )}
-               <defs>
-                  <linearGradient id="glowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                     <stop offset="0%" stopColor="#ff7e5f" />
-                     <stop offset="100%" stopColor="#feb47b" />
-                  </linearGradient>
-               </defs>
-            </svg>
+          <div className="p-4 border-t border-white/10">
+            <div className="flex gap-2">
+              <input
+                value={inputMsg}
+                onChange={(e) => setInputMsg(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Tanya tentang roadmap..."
+                className="flex-1 bg-white/10 rounded-xl px-4 py-3 text-sm outline-none placeholder:text-white/30 border border-white/10 focus:border-amber-500/50"
+              />
+              <Button onClick={handleSendMessage} disabled={chatLoading} className="bg-amber-500 hover:bg-amber-600 rounded-xl px-4">
+                <Send size={16} />
+              </Button>
+            </div>
+          </div>
+        </div>
 
-            {/* Render Nodes */}
-            <div className="absolute inset-0" style={{ left: '50%', top: '50%', transform: 'translate(-10rem, -5rem)' }}>
-               {nodes.map(node => (
-                 <HoverCard key={node.id} openDelay={200} closeDelay={100}>
-                   <HoverCardTrigger asChild>
-                     <div 
+        {/* Right: Roadmap Canvas (70%) */}
+        <div className="hidden lg:flex flex-1 flex-col relative overflow-auto bg-[#0a0e1a]">
+          <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+
+          {loading || generating ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 size={48} className="text-amber-400 animate-spin mx-auto mb-4" />
+                <p className="text-white/60 font-bold">{generating ? 'AI sedang membuat roadmap...' : 'Memuat...'}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="relative p-8 min-h-full">
+              <h2 className="text-2xl font-black mb-2 text-amber-400">🗺️ Roadmap: {career}</h2>
+              <p className="text-white/50 text-sm mb-8">{nodes.filter(n => n.status === 'completed').length}/{nodes.length} tahapan selesai</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {nodes.map((node, i) => (
+                  <HoverCard key={node.id}>
+                    <HoverCardTrigger asChild>
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: i * 0.08 }}
+                        onClick={() => handleNodeClick(node)}
                         className={cn(
-                           "absolute -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300",
-                           node.status === 'completed' 
-                              ? "w-16 h-16 bg-[#FFD700] border-4 border-white shadow-[0_0_30px_rgba(255,215,0,0.6)] z-20" 
-                              : node.status === 'active'
-                                 ? "w-20 h-20 bg-black/40 backdrop-blur-md border-2 border-[#ccff00] shadow-[0_0_40px_rgba(204,255,0,0.5)] z-30" 
-                                 : "w-14 h-14 bg-white/5 backdrop-blur-sm border border-white/20 opacity-60 hover:opacity-100 z-10"
+                          "p-5 rounded-2xl border cursor-pointer transition-all duration-300 group",
+                          node.status === 'completed' ? "bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.15)]" :
+                          node.status === 'active' ? "bg-amber-500/10 border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.15)] hover:scale-[1.03]" :
+                          "bg-white/5 border-white/10 opacity-50"
                         )}
-                        style={{ left: node.x, top: node.y }}
-                     >
-                        {node.status === 'completed' && <CheckCircle2 className="text-[#0a0514]" size={28} />}
-                        {node.status === 'active' && (
-                           <div className="absolute inset-0 rounded-full border border-[#ccff00] animate-ping opacity-50" />
-                        )}
-                        {node.status === 'active' && <Sparkles className="text-[#ccff00]" size={28} />}
-                     </div>
-                   </HoverCardTrigger>
-                   <HoverCardContent side="right" sideOffset={20} className="w-80 bg-white/10 backdrop-blur-3xl border border-white/20 p-5 rounded-2xl shadow-2xl z-50 text-white">
-                      <div className="flex justify-between items-start mb-2">
-                         <h4 className="text-lg font-black">{node.title}</h4>
-                         <span className="text-xs font-bold text-[#feb47b] bg-[#feb47b]/10 px-2 py-1 rounded-md">{node.estimatedHours} Jam</span>
-                      </div>
-                      <p className="text-sm text-slate-300 mb-6">{node.description}</p>
-                      
-                      <Button 
-                         disabled={node.status === 'locked'}
-                         className={cn(
-                           "w-full rounded-xl font-bold",
-                           node.status === 'locked' 
-                              ? "bg-white/10 text-white/40"
-                              : "bg-gradient-to-r from-[#ff7e5f] to-[#feb47b] text-slate-900 border-none hover:shadow-[0_0_20px_rgba(254,180,123,0.5)]"
-                         )}
                       >
-                         {node.status === 'locked' ? 'Terkunci' : 'Pelajari Sekarang'}
-                      </Button>
-                   </HoverCardContent>
-                 </HoverCard>
-               ))}
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black",
+                            node.status === 'completed' ? "bg-emerald-500 text-white" :
+                            node.status === 'active' ? "bg-amber-500 text-white" :
+                            "bg-white/10 text-white/30"
+                          )}>
+                            {node.status === 'completed' ? <CheckCircle2 size={16} /> : i + 1}
+                          </div>
+                          <h4 className="font-bold text-sm flex-1">{node.title}</h4>
+                        </div>
+                        <p className="text-white/50 text-xs line-clamp-2">{node.description}</p>
+                        <div className="mt-3 flex items-center justify-between">
+                          <span className="text-[10px] text-white/30 uppercase tracking-wider">{node.estimatedHours}h estimasi</span>
+                          <span className={cn(
+                            "text-[10px] font-bold px-2 py-0.5 rounded-full",
+                            node.status === 'completed' ? "bg-emerald-500/20 text-emerald-400" :
+                            node.status === 'active' ? "bg-amber-500/20 text-amber-400" :
+                            "bg-white/5 text-white/20"
+                          )}>
+                            {node.status === 'completed' ? 'Selesai' : node.status === 'active' ? 'Aktif' : 'Terkunci'}
+                          </span>
+                        </div>
+                      </motion.div>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="bg-[#1a1f2e] border-white/10 text-white w-72">
+                      <h4 className="font-bold mb-2">{node.title}</h4>
+                      <p className="text-white/70 text-xs">{node.description}</p>
+                      <p className="text-amber-400 text-xs mt-2 font-bold">Estimasi: {node.estimatedHours} jam</p>
+                      {node.status === 'active' && <p className="text-emerald-400 text-xs mt-1">Klik untuk menyelesaikan!</p>}
+                    </HoverCardContent>
+                  </HoverCard>
+                ))}
+              </div>
             </div>
-
-            {/* Timeline Markers (Approximated positions) */}
-            <div className="absolute left-[-10rem] top-[50%] -translate-y-1/2 flex flex-col gap-[150px] pointer-events-none">
-               <div className="flex items-center gap-4 text-white/30">
-                  <span className="font-bold tracking-widest uppercase text-sm">Bulan 1</span>
-                  <div className="w-full h-px bg-white/10" />
-               </div>
-               <div className="flex items-center gap-4 text-white/30">
-                  <span className="font-bold tracking-widest uppercase text-sm">Bulan 2</span>
-                  <div className="w-full h-px bg-white/10" />
-               </div>
-               <div className="flex items-center gap-4 text-white/30">
-                  <span className="font-bold tracking-widest uppercase text-sm">Bulan 3</span>
-                  <div className="w-full h-px bg-white/10" />
-               </div>
-            </div>
-         </motion.div>
-
-         {/* Floating Action Panel (Bottom Right) */}
-         <div className="absolute bottom-8 right-8 z-30 flex gap-4">
-            <Button variant="outline" className="h-14 w-14 rounded-2xl bg-white/5 hover:bg-white/10 border-white/20 text-white backdrop-blur-xl shadow-2xl">
-               <Save size={24} />
-            </Button>
-            <Button className="h-14 px-6 rounded-2xl bg-[#5D1636] hover:bg-[#8A2150] text-[#feb47b] border border-[#feb47b]/30 shadow-[0_0_25px_rgba(93,22,54,0.8)] flex gap-3 font-bold uppercase tracking-widest text-xs transition-all hover:scale-105">
-               <Download size={20} />
-               Export PDF
-            </Button>
-         </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -65,7 +65,19 @@ export function Navbar() {
         {/* Authentication CTA */}
         <div className="flex items-center gap-3 shrink-0">
           {currentUser ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  // Clear old data so fresh onboarding starts
+                  localStorage.removeItem('skillpath_onboarding_data');
+                  const dialog = document.getElementById('onboarding-modal') as HTMLDialogElement;
+                  if (dialog) dialog.showModal();
+                }}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-full border border-amber-200 transition-all"
+                title="Personalisasi Ulang"
+              >
+                🔄 Personalisasi Ulang
+              </button>
               <Link href="/profile" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/50 hover:bg-white/80 transition-all border border-slate-200 cursor-pointer">
                 <img src={currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.email}`} alt="Avatar" className="w-6 h-6 rounded-full" />
                 <span className="text-xs font-semibold text-slate-700 hidden sm:block">{currentUser.displayName || 'User'}</span>

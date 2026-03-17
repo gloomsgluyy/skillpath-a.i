@@ -54,6 +54,8 @@ export default function OnboardingModal() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCustomRole, setShowCustomRole] = useState(false);
+  const [customRoleInput, setCustomRoleInput] = useState('');
 
   const handleNext = (updates: Partial<OnboardingState>) => {
     setData((prev) => ({ ...prev, ...updates, step: prev.step + 1 }));
@@ -235,6 +237,42 @@ export default function OnboardingModal() {
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Custom Role "Lainnya" */}
+              <div className="space-y-2">
+                <button
+                  onClick={() => setShowCustomRole(!showCustomRole)}
+                  className={`w-full px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all border-2 border-dashed active:scale-95 ${
+                    showCustomRole
+                      ? 'bg-amber-50 text-amber-700 border-amber-400'
+                      : 'bg-white text-slate-500 border-slate-200 hover:border-amber-300'
+                  }`}
+                >
+                  ✨ Lainnya — Ketik role impianmu sendiri
+                </button>
+                {showCustomRole && (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customRoleInput}
+                      onChange={(e) => setCustomRoleInput(e.target.value)}
+                      placeholder="Misal: Blockchain Developer, AR Designer..."
+                      className="flex-1 px-3 py-2 rounded-xl text-sm border-2 border-amber-200 focus:border-amber-400 focus:outline-none bg-white"
+                    />
+                    <button
+                      onClick={() => {
+                        if (customRoleInput.trim()) {
+                          toggleRole(customRoleInput.trim());
+                          setCustomRoleInput('');
+                        }
+                      }}
+                      className="px-4 py-2 rounded-xl text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 transition-all"
+                    >
+                      + Tambah
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 shrink-0">
