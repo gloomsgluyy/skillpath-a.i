@@ -52,7 +52,7 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
     const snap = await getDoc(userRef);
     return snap.exists() ? (snap.data() as UserProfile) : null;
   } catch (error) {
-    console.error('getUserProfile error:', error);
+    console.warn('getUserProfile offline/error:', error);
     return null;
   }
 };
@@ -94,7 +94,7 @@ export const getAIRecommendation = async (uid: string): Promise<AIRecommendation
     const snap = await getDoc(ref);
     return snap.exists() ? (snap.data() as AIRecommendation) : null;
   } catch (error) {
-    console.error('getAIRecommendation error:', error);
+    console.warn('getAIRecommendation offline/error:', error);
     return null;
   }
 };
@@ -126,9 +126,14 @@ export const saveAssessmentResults = async (uid: string, answers: number[], aiRe
 
 export const getUserAssessment = async (uid: string) => {
   if (!uid) return null;
-  const ref = doc(db, 'assessments', uid);
-  const snap = await getDoc(ref);
-  return snap.exists() ? snap.data() : null;
+  try {
+    const ref = doc(db, 'assessments', uid);
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data() : null;
+  } catch (error) {
+    console.warn('getUserAssessment offline/error:', error);
+    return null;
+  }
 };
 
 // ===================== SKILL PATHS =====================
@@ -163,21 +168,25 @@ export const getSkillPath = async (uid: string) => {
     const snap = await getDoc(ref);
     return snap.exists() ? snap.data() : null;
   } catch (error) {
-    console.error('getSkillPath error:', error);
+    console.warn('getSkillPath offline/error:', error);
     return null;
   }
 };
 
 export const updateSkillPathNode = async (uid: string, nodeId: string, status: 'locked' | 'active' | 'completed') => {
   if (!uid) return;
-  const ref = doc(db, 'skillpaths', uid);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return;
+  try {
+    const ref = doc(db, 'skillpaths', uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
 
-  const data = snap.data();
-  const nodes = (data.nodes || []).map((n: any) => n.id === nodeId ? { ...n, status } : n);
-  await updateDoc(ref, { nodes, lastUpdated: serverTimestamp() });
-  if (status === 'completed') await incrementUserPoints(uid, 50);
+    const data = snap.data();
+    const nodes = (data.nodes || []).map((n: any) => n.id === nodeId ? { ...n, status } : n);
+    await updateDoc(ref, { nodes, lastUpdated: serverTimestamp() });
+    if (status === 'completed') await incrementUserPoints(uid, 50);
+  } catch (error) {
+    console.warn('updateSkillPathNode offline/error:', error);
+  }
 };
 
 // ===================== LEARNING JOURNEYS =====================
@@ -212,42 +221,46 @@ export const getUserJourney = async (uid: string) => {
     const snap = await getDoc(ref);
     return snap.exists() ? snap.data() : null;
   } catch (error) {
-    console.error('getUserJourney error:', error);
+    console.warn('getUserJourney offline/error:', error);
     return null;
   }
 };
 
 export const markTaskCompleted = async (uid: string, taskId: string) => {
   if (!uid) return;
-  const ref = doc(db, 'journeys', uid);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return;
+  try {
+    const ref = doc(db, 'journeys', uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
 
-  const data = snap.data();
-  const tasks = (data.tasks || []).map((t: any) =>
-    t.id === taskId ? { ...t, completed: true, completedAt: new Date().toISOString() } : t
-  );
+    const data = snap.data();
+    const tasks = (data.tasks || []).map((t: any) =>
+      t.id === taskId ? { ...t, completed: true, completedAt: new Date().toISOString() } : t
+    );
 
-  // Streak logic
-  const today = new Date().toDateString();
-  const lastDate = data.lastCompletedDate;
-  const yesterday = new Date(Date.now() - 86400000).toDateString();
-  let newStreak = data.streak || 0;
-  if (lastDate !== today) {
-    newStreak = lastDate === yesterday ? newStreak + 1 : 1;
+    // Streak logic
+    const today = new Date().toDateString();
+    const lastDate = data.lastCompletedDate;
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    let newStreak = data.streak || 0;
+    if (lastDate !== today) {
+      newStreak = lastDate === yesterday ? newStreak + 1 : 1;
+    }
+
+    await updateDoc(ref, {
+      tasks,
+      streak: newStreak,
+      lastCompletedDate: today,
+      lastUpdated: serverTimestamp(),
+    });
+    await incrementUserPoints(uid, 15);
+
+    // Update completed task count on profile
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, { completedTaskCount: increment(1) }).catch(() => {});
+  } catch (error) {
+    console.warn('markTaskCompleted offline/error:', error);
   }
-
-  await updateDoc(ref, {
-    tasks,
-    streak: newStreak,
-    lastCompletedDate: today,
-    lastUpdated: serverTimestamp(),
-  });
-  await incrementUserPoints(uid, 15);
-
-  // Update completed task count on profile
-  const userRef = doc(db, 'users', uid);
-  await updateDoc(userRef, { completedTaskCount: increment(1) }).catch(() => {});
 };
 
 // ===================== PROJECTS =====================
@@ -283,7 +296,7 @@ export const getUserProjects = async (uid: string): Promise<ProjectEvaluation[]>
     const snap = await getDocs(q);
     return snap.docs.map(d => d.data() as ProjectEvaluation);
   } catch (error) {
-    console.error('getUserProjects error:', error);
+    console.warn('getUserProjects offline/error:', error);
     return [];
   }
 };
@@ -312,7 +325,7 @@ export const getUserStats = async (uid: string) => {
       avgProjectScore: projects.length > 0 ? Math.round(projects.reduce((a, p) => a + (p.score || 0), 0) / projects.length) : 0,
     };
   } catch (error) {
-    console.error('getUserStats error:', error);
+    console.warn('getUserStats offline/error:', error);
     return null;
   }
 };
