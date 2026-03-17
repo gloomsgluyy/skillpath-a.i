@@ -123,6 +123,12 @@ export default function SkillPathsPage() {
     setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setChatLoading(true);
 
+    if (!career) {
+      setMessages(prev => [...prev, { role: 'ai', content: 'Target karir belum ditentukan. Silakan coba personalisasi ulang kariermu.' }]);
+      setChatLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/generate-path', {
         method: 'POST',
@@ -130,7 +136,12 @@ export default function SkillPathsPage() {
         body: JSON.stringify({ career, question: userMsg })
       });
       const data = await res.json();
-      setMessages(prev => [...prev, { role: 'ai', content: data.answer || data.nodes ? 'Roadmap telah diperbarui!' : 'Maaf, saya tidak bisa menjawab saat ini.' }]);
+      
+      if (data.answer) {
+        setMessages(prev => [...prev, { role: 'ai', content: data.answer }]);
+      } else {
+         setMessages(prev => [...prev, { role: 'ai', content: 'Maaf, saya tidak bisa mendeteksi jawaban. Coba tanyakan lagi.' }]);
+      }
     } catch {
       setMessages(prev => [...prev, { role: 'ai', content: 'Koneksi error. Coba lagi.' }]);
     }

@@ -47,9 +47,14 @@ export const saveUserProfile = async (uid: string, data: Partial<UserProfile>) =
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
   if (!uid) return null;
-  const userRef = doc(db, 'users', uid);
-  const snap = await getDoc(userRef);
-  return snap.exists() ? (snap.data() as UserProfile) : null;
+  try {
+    const userRef = doc(db, 'users', uid);
+    const snap = await getDoc(userRef);
+    return snap.exists() ? (snap.data() as UserProfile) : null;
+  } catch (error) {
+    console.error('getUserProfile error:', error);
+    return null;
+  }
 };
 
 export const incrementUserPoints = async (uid: string, amount: number) => {
@@ -84,9 +89,14 @@ export const saveAIRecommendation = async (uid: string, result: Omit<AIRecommend
 
 export const getAIRecommendation = async (uid: string): Promise<AIRecommendation | null> => {
   if (!uid) return null;
-  const ref = doc(db, 'recommendations', uid);
-  const snap = await getDoc(ref);
-  return snap.exists() ? (snap.data() as AIRecommendation) : null;
+  try {
+    const ref = doc(db, 'recommendations', uid);
+    const snap = await getDoc(ref);
+    return snap.exists() ? (snap.data() as AIRecommendation) : null;
+  } catch (error) {
+    console.error('getAIRecommendation error:', error);
+    return null;
+  }
 };
 
 export const deleteAIRecommendation = async (uid: string) => {
@@ -148,9 +158,14 @@ export const saveSkillPath = async (uid: string, career: string, nodes: SkillPat
 
 export const getSkillPath = async (uid: string) => {
   if (!uid) return null;
-  const ref = doc(db, 'skillpaths', uid);
-  const snap = await getDoc(ref);
-  return snap.exists() ? snap.data() : null;
+  try {
+    const ref = doc(db, 'skillpaths', uid);
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data() : null;
+  } catch (error) {
+    console.error('getSkillPath error:', error);
+    return null;
+  }
 };
 
 export const updateSkillPathNode = async (uid: string, nodeId: string, status: 'locked' | 'active' | 'completed') => {
@@ -192,9 +207,14 @@ export const saveUserJourney = async (uid: string, career: string, tasks: Journe
 
 export const getUserJourney = async (uid: string) => {
   if (!uid) return null;
-  const ref = doc(db, 'journeys', uid);
-  const snap = await getDoc(ref);
-  return snap.exists() ? snap.data() : null;
+  try {
+    const ref = doc(db, 'journeys', uid);
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data() : null;
+  } catch (error) {
+    console.error('getUserJourney error:', error);
+    return null;
+  }
 };
 
 export const markTaskCompleted = async (uid: string, taskId: string) => {
@@ -258,30 +278,41 @@ export const saveProjectEvaluation = async (uid: string, project: Omit<ProjectEv
 
 export const getUserProjects = async (uid: string): Promise<ProjectEvaluation[]> => {
   if (!uid) return [];
-  const q = query(collection(db, 'projects'), where('uid', '==', uid));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => d.data() as ProjectEvaluation);
+  try {
+    const q = query(collection(db, 'projects'), where('uid', '==', uid));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data() as ProjectEvaluation);
+  } catch (error) {
+    console.error('getUserProjects error:', error);
+    return [];
+  }
 };
 
 // ===================== USER STATS AGGREGATION =====================
 
 export const getUserStats = async (uid: string) => {
-  const profile = await getUserProfile(uid);
-  const journeyData = await getUserJourney(uid);
-  const projects = await getUserProjects(uid);
+  if (!uid) return null;
+  try {
+    const profile = await getUserProfile(uid);
+    const journeyData = await getUserJourney(uid);
+    const projects = await getUserProjects(uid);
 
-  const completedTasks = journeyData?.tasks?.filter((t: any) => t.completed).length || 0;
-  const totalTasks = journeyData?.tasks?.length || 0;
-  const points = profile?.points || 0;
-  const level = Math.max(1, Math.floor(points / 200) + 1);
+    const completedTasks = journeyData?.tasks?.filter((t: any) => t.completed).length || 0;
+    const totalTasks = journeyData?.tasks?.length || 0;
+    const points = profile?.points || 0;
+    const level = Math.max(1, Math.floor(points / 200) + 1);
 
-  return {
-    points,
-    level,
-    completedTasks,
-    totalTasks,
-    projectCount: projects.length,
-    streak: journeyData?.streak || 0,
-    avgProjectScore: projects.length > 0 ? Math.round(projects.reduce((a, p) => a + (p.score || 0), 0) / projects.length) : 0,
-  };
+    return {
+      points,
+      level,
+      completedTasks,
+      totalTasks,
+      projectCount: projects.length,
+      streak: journeyData?.streak || 0,
+      avgProjectScore: projects.length > 0 ? Math.round(projects.reduce((a, p) => a + (p.score || 0), 0) / projects.length) : 0,
+    };
+  } catch (error) {
+    console.error('getUserStats error:', error);
+    return null;
+  }
 };

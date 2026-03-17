@@ -7,12 +7,31 @@ const groq = new Groq({
 
 export async function POST(req: Request) {
   try {
-    const { career, profile } = await req.json();
+    const { career, profile, question } = await req.json();
 
     if (!career) {
       return NextResponse.json({ error: 'Career title is required.' }, { status: 400 });
     }
 
+    if (question) {
+      // Chat mode
+      const chatPrompt = `
+You are an expert AI Career Consultant guiding the user on their path to becoming a ${career}.
+The user asks: "${question}"
+Answer directly, concisely, and encouragingly in Indonesian.
+Respond in valid JSON format:
+{ "answer": "your response here" }
+`;
+      const chatCompletion = await groq.chat.completions.create({
+        messages: [{ role: 'system', content: 'You are an AI consultant. Output strict JSON.' }, { role: 'user', content: chatPrompt }],
+        model: 'llama-3.1-8b-instant',
+        temperature: 0.7,
+        response_format: { type: 'json_object' },
+      });
+      return NextResponse.json(JSON.parse(chatCompletion.choices[0]?.message?.content || '{}'));
+    }
+
+    // Roadmap generation mode
     const prompt = `
 You are an expert tech educator building a Neural Roadmap for someone who wants to become a ${career}.
 The user has this background:
@@ -20,29 +39,21 @@ The user has this background:
 - Learning Style/Archetype: ${profile?.archetype || 'Unknown'}
 
 Create a highly detailed, chronological learning path.
-Respond ONLY in valid JSON format matching this EXACT structure:
+Respond ONLY in valid JSON format:
 {
   "careerTitle": "${career}",
-  "estimatedMonths": "Total estimated months (e.g., '6 Bulan')",
+  "estimatedMonths": "Total estimated months",
   "nodes": [
     {
       "id": "node_1",
-      "title": "Topic title (e.g., Basic Linux)",
-      "description": "Short explanation of what will be learned",
-      "estimatedHours": 20,
-      "prerequisites": [] // empty array for first nodes
-    },
-    {
-      "id": "node_2",
-      "title": "Next Topic (e.g., Bash Scripting)",
+      "title": "Topic title",
       "description": "Short explanation",
-      "estimatedHours": 15,
-      "prerequisites": ["node_1"] // ID of the required previous node
+      "estimatedHours": 20,
+      "prerequisites": []
     }
   ]
 }
-Generate at least 8 to 12 sequential nodes covering fundamentals to advanced topics for ${career}.
-Write content in fluent Indonesian.
+Generate 8 to 12 sequential nodes. Write in Indonesian.
 `;
 
     const chatCompletion = await groq.chat.completions.create({
