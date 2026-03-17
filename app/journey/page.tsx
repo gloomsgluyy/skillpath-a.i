@@ -60,7 +60,7 @@ export default function LearningJourney() {
             completedAt: null,
           }));
           setTasks(journeyTasks);
-          await saveUserJourney(currentUser.uid, targetCareer, journeyTasks);
+          saveUserJourney(currentUser.uid, targetCareer, journeyTasks).catch(console.warn);
         }
       } catch (err) {
         console.error('Journey generation error:', err);

@@ -82,7 +82,7 @@ export default function SkillPathsPage() {
             y: 80 + Math.floor(i / 3) * 160,
           }));
           setNodes(pathNodes);
-          await saveSkillPath(currentUser.uid, targetCareer, pathNodes);
+          saveSkillPath(currentUser.uid, targetCareer, pathNodes).catch(console.warn);
           setMessages(prev => [...prev, { role: 'ai', content: `✅ Roadmap ${targetCareer} sudah jadi! Ada ${pathNodes.length} tahapan yang perlu kamu kuasai. Mulai dari yang paling atas ya!` }]);
         }
       } catch (err) {
@@ -108,9 +108,9 @@ export default function SkillPathsPage() {
       if (nextLocked) nextLocked.status = 'active';
 
       setNodes(updatedNodes);
-      await updateSkillPathNode(currentUser.uid, node.id, 'completed');
+      updateSkillPathNode(currentUser.uid, node.id, 'completed').catch(console.warn);
       if (nextLocked) {
-        await saveSkillPath(currentUser.uid, career, updatedNodes);
+        saveSkillPath(currentUser.uid, career, updatedNodes).catch(console.warn);
       }
       setMessages(prev => [...prev, { role: 'ai', content: `🎉 Hebat! Kamu sudah menyelesaikan "${node.title}". ${nextLocked ? `Selanjutnya: "${nextLocked.title}"` : 'Semua tahapan selesai! 🏆'}` }]);
     }

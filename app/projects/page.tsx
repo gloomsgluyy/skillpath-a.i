@@ -70,7 +70,7 @@ export default function ProjectsPage() {
         feedback: data.feedback || 'Proyek bagus! Terus tingkatkan.',
       };
 
-      await saveProjectEvaluation(currentUser.uid, project);
+      saveProjectEvaluation(currentUser.uid, project).catch(console.warn);
       setProjects(prev => [...prev, { ...project, submittedAt: new Date() } as ProjectEvaluation]);
       setEvalResult(data);
       setProjectTitle('');
