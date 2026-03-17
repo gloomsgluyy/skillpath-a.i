@@ -53,7 +53,8 @@ Respond ONLY in valid JSON format:
     }
   ]
 }
-Generate 8 to 12 sequential nodes. Write in Indonesian.
+}
+Generate 6 to 8 sequential nodes. Write in Indonesian.
 `;
 
     const chatCompletion = await groq.chat.completions.create({
@@ -61,9 +62,9 @@ Generate 8 to 12 sequential nodes. Write in Indonesian.
         { role: 'system', content: 'You are an AI generating structured JSON neural roadmaps in Indonesian.' },
         { role: 'user', content: prompt }
       ],
-      model: 'llama-3.1-8b-instant',
+      model: 'llama-3.3-70b-versatile',
       temperature: 0.6,
-      max_tokens: 2000,
+      max_tokens: 1500,
       response_format: { type: 'json_object' },
     });
 
