@@ -7,10 +7,10 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const topic = body.career || body.topic;
-    const durationDays = body.durationDays || 14;
+    const durationDays = body.durationDays || 7;
 
     const prompt = `
-Create a ${durationDays}-day Learning Journey task checklist for the specific topic: "${topic}".
+Create a ${durationDays}-day Starter Learning Journey checklist for the topic: "${topic}".
 Break it down into actionable daily tasks.
 Respond ONLY in valid JSON format matching this EXACT structure:
 {
