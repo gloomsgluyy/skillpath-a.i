@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SkillPath A.I.
+
+SkillPath A.I. is a personalized career learning platform powered by Artificial Intelligence. It generates customized learning roadmaps, daily actionable tasks, and provides an integrated AI consultant to guide users through their chosen tech career journeys.
+
+## Overview
+
+Traditional learning paths are often rigid and one-size-fits-all. SkillPath A.I. solves this by leveraging generative AI (via Groq and Llama models) to dynamically create learning roadmaps based on a user's specific background, interests, and target career. 
+
+Users can explore different tech roles, receive AI-driven recommendations, and commit to a learning journey complete with estimated hours, prerequisites, and a gamified task tracker.
+
+## Key Features
+
+*   **AI Career Recommender**: Assesses a user's background (education, interests) and suggests the most compatible tech roles with detailed reasoning and match scores.
+*   **Dynamic Skill Roadmaps**: Generates a comprehensive, node-based skill tree tailored to the user's target career, detailing prerequisites and time estimations for each learning phase.
+*   **Daily Learning Journeys**: Breaks down the overarching roadmap into manageable, daily tasks to build learning habits and maintain streaks.
+*   **Project Evaluation**: Allows users to submit their portfolio projects for AI analysis, receiving automated scoring, feedback, and skill validations.
+*   **Integrated AI Consultant**: A dedicated, context-aware chatbot that uses Markdown formatting to assist users with technical questions and guidance throughout their roadmap.
+*   **Gamified Progression**: Tracks user experience points (XP), levels, streaks, and completed tasks to encourage consistent learning.
+
+## Technology Stack
+
+### Frontend
+*   **Framework**: Next.js 14 (App Router)
+*   **UI Library**: React
+*   **Styling**: Tailwind CSS
+*   **Components**: shadcn/ui
+*   **Animations**: Framer Motion
+*   **Markdown Parsing**: react-markdown, remark-gfm
+
+### Backend & AI
+*   **Database & Auth**: Firebase (Firestore, Firebase Authentication)
+*   **AI Inference**: Groq API (Llama3 Models)
+*   **API Routes**: Next.js Serverless Functions
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Ensure you have the following installed on your local machine:
+*   Node.js (v18.0.0 or higher)
+*   npm or pnpm
+
+### Environment Setup
+
+1.  Clone the repository to your local machine.
+2.  Duplicate the `.env.example` file and rename it to `.env.local`.
+3.  Fill in the required environment variables:
+
+```env
+# Firebase Configuration
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
+
+# Groq AI Configuration
+GROQ_API_KEY=your_groq_api_key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation & Execution
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1.  Install the project dependencies:
+```bash
+npm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2.  Start the development server:
+```bash
+npm run dev
+```
 
-## Learn More
+3.  Open `http://localhost:3000` in your browser to view the application.
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+*   `/app`: Contains Next.js App Router pages (Home, Profile, Paths, Journey, Projects, Discover) and backend API endpoints (`/app/api`).
+*   `/components`: Reusable UI components including layout elements, shadcn/ui primitives, and page sections.
+*   `/context`: React contexts, notably the AuthContext for managing Firebase user sessions.
+*   `/lib`: Utility functions, Firestore CRUD operations (`firestore.ts`), and static databases.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Design Philosophy
 
-## Deploy on Vercel
+The application interface is designed with a "Sunset Horizon Warm Glassmorphism" aesthetic. It utilizes a light theme characterized by subtle amber and orange gradients, frosted glass effects (backdrop-blur), asymmetrical card layouts, and refined typography to provide a premium, modern, and engaging user experience that avoids looking heavily "AI-generated".
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the MIT License.
