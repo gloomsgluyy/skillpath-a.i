@@ -32,10 +32,11 @@ Respond ONLY in valid JSON format matching this EXACT structure:
   "weeklyMilestone": "Reward title for finishing this week (m.g., 'Sertifikat Dasar-Dasar X')"
 }
 Provide exactly ${durationDays} tasks (one per day). Write in Indonesian.
+Do NOT use any emojis in your response.
 `;
 
     const completion = await groq.chat.completions.create({
-      messages: [{ role: 'system', content: 'Output strict JSON in Indonesian.' }, { role: 'user', content: prompt }],
+      messages: [{ role: 'system', content: 'Output strict JSON in Indonesian. No emojis.' }, { role: 'user', content: prompt }],
       model: 'llama-3.3-70b-versatile',
       temperature: 0.7,
       max_tokens: 1500,

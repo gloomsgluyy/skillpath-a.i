@@ -19,11 +19,12 @@ export async function POST(req: Request) {
 You are an expert AI Career Consultant guiding the user on their path to becoming a ${career}.
 The user asks: "${question}"
 Answer directly, concisely, and encouragingly in Indonesian.
+Do NOT use any emojis in your response. Use Markdown for formatting (e.g. bold, lists).
 Respond in valid JSON format:
 { "answer": "your response here" }
 `;
       const chatCompletion = await groq.chat.completions.create({
-        messages: [{ role: 'system', content: 'You are an AI consultant. Output strict JSON.' }, { role: 'user', content: chatPrompt }],
+        messages: [{ role: 'system', content: 'You are an AI consultant. Output strict JSON. No emojis.' }, { role: 'user', content: chatPrompt }],
         model: 'llama-3.1-8b-instant',
         temperature: 0.7,
         response_format: { type: 'json_object' },
@@ -55,11 +56,12 @@ Respond ONLY in valid JSON format:
 }
 }
 Generate 6 to 8 sequential nodes. Write in Indonesian.
+Do NOT use any emojis in your response.
 `;
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [
-        { role: 'system', content: 'You are an AI generating structured JSON neural roadmaps in Indonesian.' },
+        { role: 'system', content: 'You are an AI generating structured JSON neural roadmaps in Indonesian. No emojis.' },
         { role: 'user', content: prompt }
       ],
       model: 'llama-3.3-70b-versatile',

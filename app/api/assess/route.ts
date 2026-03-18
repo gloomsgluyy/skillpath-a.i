@@ -60,13 +60,14 @@ Respond ONLY in valid JSON format matching this EXACT structure:
   "personalityTraits": ["Trait 1", "Trait 2", "Trait 3"],
   "detailedAnalysis": "A 2-3 paragraph encouraging and insightful analysis of why these fields fit the user based on their specific answers. Write in fluent, modern Indonesian."
 }
+Do NOT use any emojis in your response.
 `;
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
           role: 'system',
-          content: 'You are an advanced career AI. You communicate in Indonesian and ONLY return valid JSON.',
+          content: 'You are an advanced career AI. You communicate in Indonesian and ONLY return valid JSON. No emojis.',
         },
         {
           role: 'user',

@@ -34,7 +34,7 @@ Format output WAJIB JSON:
     // tambahkan 2 rekomendasi lagi dengan format persis sama
   ]
 }
-HANYA kembalikan JSON murni, jangan ada teks lain.`;
+HANYA kembalikan JSON murni, jangan ada teks lain. DILARANG KERAS MENGGUNAKAN EMOJI.`;
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -45,7 +45,7 @@ HANYA kembalikan JSON murni, jangan ada teks lain.`;
       body: JSON.stringify({
         model: 'llama-3.1-8b-instant',
         messages: [
-          { role: 'system', content: 'Anda adalah SkillPath AI, asisten pemandu karir teknologi yang memberikan feedback dalam format JSON murni.' },
+          { role: 'system', content: 'Anda adalah SkillPath AI, asisten pemandu karir teknologi yang memberikan feedback dalam format JSON murni tanpa emoji sama sekali.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.5,

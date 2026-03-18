@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { Plus, Sparkles, CheckCircle2, Star, ExternalLink, Loader2 } from 'lucide-react';
+import { Plus, Sparkles, CheckCircle2, Star, ExternalLink, Loader2, FolderKanban } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getUserProjects, saveProjectEvaluation, getAIRecommendation, type ProjectEvaluation } from '@/lib/firestore';
@@ -84,85 +85,99 @@ export default function ProjectsPage() {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-[#0a0e1a] text-white pt-24">
+      <div className="min-h-screen pt-24">
         <Navbar />
         <div className="max-w-xl mx-auto text-center py-20 px-4">
-          <Sparkles size={48} className="text-amber-400 mx-auto mb-6" />
-          <h2 className="text-3xl font-black mb-4">Login Diperlukan</h2>
-          <p className="text-white/60 mb-8">Login untuk mengakses AI Projects Lab.</p>
-          <Button onClick={() => router.push('/')} className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-8">Kembali</Button>
+          <div className="w-20 h-20 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <FolderKanban size={36} className="text-white" />
+          </div>
+          <h2 className="text-3xl font-black mb-4 text-slate-900">Login Diperlukan</h2>
+          <p className="text-slate-600 mb-8">Login untuk mengakses AI Projects Lab.</p>
+          <Button onClick={() => router.push('/')} className="glow-pill-primary font-black px-8 py-3">Kembali</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white pt-24 pb-12">
+    <div className="min-h-screen pt-24 pb-16">
       <Navbar />
-      <div className="fixed top-0 right-0 w-[40%] h-[40%] bg-amber-600/10 rounded-full blur-[150px] pointer-events-none" />
+      {/* Subtle mesh — matches landing page */}
+      <div className="fixed inset-0 z-[1] pointer-events-none bg-[radial-gradient(circle_at_70%_10%,rgba(255,126,95,0.06)_0%,transparent_50%),radial-gradient(circle_at_30%_90%,rgba(254,180,123,0.05)_0%,transparent_50%)]" />
 
       <main className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10"
+        >
           <div>
-            <h1 className="text-3xl font-black mb-1">🚀 AI Projects Lab</h1>
-            <p className="text-white/50 text-sm font-medium">Submit proyekmu dan dapatkan evaluasi dari AI Mentor</p>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-1">AI Projects Lab</h1>
+            <p className="text-slate-500 text-sm font-medium">Submit proyekmu dan dapatkan evaluasi dari AI Mentor</p>
           </div>
-          <Button onClick={() => { setShowSubmit(true); setEvalResult(null); }} className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl px-6">
+          <Button onClick={() => { setShowSubmit(true); setEvalResult(null); }} className="glow-pill-primary font-black text-sm px-6 py-3">
             <Plus size={16} className="mr-2" /> Submit Proyek Baru
           </Button>
-        </div>
+        </motion.div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
+          <div className="flex justify-center py-32">
             <Loader2 size={48} className="text-amber-400 animate-spin" />
           </div>
         ) : projects.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-24 h-24 rounded-3xl bg-white/5 flex items-center justify-center mx-auto mb-6 border border-white/10">
-              <Sparkles size={40} className="text-amber-400" />
+          <div className="rounded-[2.5rem] bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.03)] p-16 text-center">
+            <div className="w-20 h-20 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <FolderKanban size={36} className="text-white" />
             </div>
-            <h3 className="text-xl font-black mb-2">Belum Ada Proyek</h3>
-            <p className="text-white/50 text-sm mb-6">Submit proyek pertamamu untuk mendapatkan evaluasi AI!</p>
-            <Button onClick={() => setShowSubmit(true)} className="bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl px-6">
+            <h3 className="text-xl font-black mb-2 text-slate-900">Belum Ada Proyek</h3>
+            <p className="text-slate-500 text-sm mb-8 max-w-md mx-auto">Submit proyek pertamamu untuk mendapatkan evaluasi AI dan bangun portofoliomu!</p>
+            <Button onClick={() => setShowSubmit(true)} className="glow-pill-primary font-black px-8 py-3">
               Submit Proyek Pertama
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
             {projects.map((project, i) => (
               <motion.div
                 key={project.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl hover:border-amber-500/30 transition-all group"
+                transition={{ delay: Math.min(i * 0.05, 0.5), ease: 'easeOut' }}
+                className="rounded-[2rem] bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500 hover:-translate-y-1 group flex flex-col p-6"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-lg">
-                    <CheckCircle2 size={20} />
+                  <div className="w-12 h-12 rounded-2xl bg-white shadow-xl shadow-black/5 group-hover:rotate-6 transition-transform duration-500 flex items-center justify-center">
+                    <FolderKanban size={22} className="text-amber-600" />
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Star size={14} className="text-amber-400 fill-current" />
-                    <span className="text-lg font-black text-amber-400">{project.score}</span>
-                    <span className="text-white/30 text-xs">/100</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/50 border border-white/60">
+                    <Star size={12} className="text-amber-500 fill-current" />
+                    <span className="text-sm font-black text-slate-800">{project.score}</span>
+                    <span className="text-slate-400 text-[10px] font-bold">/100</span>
                   </div>
                 </div>
 
-                <h3 className="font-bold text-lg mb-2">{project.title}</h3>
+                {/* Score progress bar */}
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-4">
+                  <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500" style={{ width: `${project.score}%` }} />
+                </div>
 
-                <div className="flex flex-wrap gap-1.5 mb-4">
+                <h3 className="font-black text-lg text-slate-900 leading-tight mb-2">{project.title}</h3>
+
+                <div className="flex flex-wrap gap-1.5 mb-3">
                   {project.skills.map(s => (
-                    <span key={s} className="px-2 py-0.5 bg-white/10 rounded-md text-[10px] font-bold text-white/60">{s}</span>
+                    <Badge key={s} variant="outline" className="text-[10px] font-bold text-slate-600 border-slate-200 bg-white/40 px-2 py-0.5">{s}</Badge>
                   ))}
                 </div>
 
-                <p className="text-white/50 text-xs line-clamp-3 mb-4">{project.feedback}</p>
+                <p className="text-slate-500 text-xs line-clamp-2 mb-4 flex-1">{project.feedback}</p>
 
                 {project.link && (
-                  <a href={project.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-amber-400 text-xs font-bold hover:underline">
-                    <ExternalLink size={12} /> Lihat Proyek
-                  </a>
+                  <div className="pt-3 border-t border-slate-200/50">
+                    <a href={project.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-slate-700 text-xs font-bold hover:text-amber-600 transition-colors">
+                      <ExternalLink size={12} /> Lihat Proyek
+                    </a>
+                  </div>
                 )}
               </motion.div>
             ))}
@@ -172,42 +187,48 @@ export default function ProjectsPage() {
 
       {/* Submit Sheet */}
       <Sheet open={showSubmit} onOpenChange={setShowSubmit}>
-        <SheetContent className="w-full md:max-w-md bg-[#1a1f2e] border-l-white/10 text-white p-0 flex flex-col">
+        <SheetContent className="w-full md:max-w-md bg-white/95 backdrop-blur-3xl border-l-white/40 shadow-[-20px_0_40px_rgba(0,0,0,0.1)] p-0 flex flex-col">
           <div className="p-8 flex-1 overflow-y-auto">
             <SheetHeader className="mb-8">
-              <SheetTitle className="text-2xl font-black text-white">Submit Proyek</SheetTitle>
-              <p className="text-white/50 text-sm">AI akan mengevaluasi proyek dan memberikan feedback.</p>
+              <SheetTitle className="text-2xl font-black text-slate-900 tracking-tight">Submit Proyek</SheetTitle>
+              <p className="text-slate-500 text-sm font-medium">AI akan mengevaluasi proyek dan memberikan feedback.</p>
             </SheetHeader>
 
             <div className="space-y-6">
               <div>
-                <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-2 block">Judul Proyek *</label>
-                <input value={projectTitle} onChange={(e) => setProjectTitle(e.target.value)} placeholder="Misal: E-Commerce Landing Page" className="w-full bg-white/10 rounded-xl px-4 py-3 text-sm outline-none border border-white/10 focus:border-amber-500/50" />
+                <label className="text-[13px] font-black text-slate-700 mb-2 block">Judul Proyek *</label>
+                <input value={projectTitle} onChange={(e) => setProjectTitle(e.target.value)} placeholder="Misal: E-Commerce Landing Page" className="w-full bg-white rounded-xl px-4 py-3.5 text-sm font-medium outline-none border border-slate-200 focus:border-amber-400 focus:ring-4 focus:ring-amber-500/10 transition-all text-slate-900 shadow-sm" />
               </div>
               <div>
-                <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-2 block">Link Proyek</label>
-                <input value={projectLink} onChange={(e) => setProjectLink(e.target.value)} placeholder="https://github.com/..." className="w-full bg-white/10 rounded-xl px-4 py-3 text-sm outline-none border border-white/10 focus:border-amber-500/50" />
+                <label className="text-[13px] font-black text-slate-700 mb-2 block">Link Proyek</label>
+                <input value={projectLink} onChange={(e) => setProjectLink(e.target.value)} placeholder="https://github.com/..." className="w-full bg-white rounded-xl px-4 py-3.5 text-sm font-medium outline-none border border-slate-200 focus:border-amber-400 focus:ring-4 focus:ring-amber-500/10 transition-all text-slate-900 shadow-sm" />
               </div>
               <div>
-                <label className="text-xs font-bold text-white/50 uppercase tracking-widest mb-2 block">Skills (pisah koma)</label>
-                <input value={projectSkills} onChange={(e) => setProjectSkills(e.target.value)} placeholder="React, Node.js, Firebase" className="w-full bg-white/10 rounded-xl px-4 py-3 text-sm outline-none border border-white/10 focus:border-amber-500/50" />
+                <label className="text-[13px] font-black text-slate-700 mb-2 block">Skills (pisah koma)</label>
+                <input value={projectSkills} onChange={(e) => setProjectSkills(e.target.value)} placeholder="React, Node.js, Firebase" className="w-full bg-white rounded-xl px-4 py-3.5 text-sm font-medium outline-none border border-slate-200 focus:border-amber-400 focus:ring-4 focus:ring-amber-500/10 transition-all text-slate-900 shadow-sm" />
               </div>
             </div>
 
             {evalResult && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8 p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
-                <div className="flex items-center gap-3 mb-3">
-                  <CheckCircle2 className="text-emerald-400" size={20} />
-                  <span className="font-bold text-emerald-300">Evaluasi Selesai!</span>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 rounded-[1.5rem] bg-white border border-slate-100 shadow-[0_10px_40px_rgba(0,0,0,0.05)] p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 className="text-emerald-600" size={20} />
+                  </div>
+                  <div>
+                    <span className="font-black text-slate-900">Evaluasi Selesai!</span>
+                    <div className="text-2xl font-black text-slate-900">
+                      Skor: <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">{evalResult.score}/100</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-3xl font-black text-amber-400 mb-2">Skor: {evalResult.score}/100</div>
-                <p className="text-white/70 text-sm">{evalResult.feedback}</p>
+                <p className="text-slate-600 text-sm leading-relaxed">{evalResult.feedback}</p>
               </motion.div>
             )}
           </div>
 
-          <div className="p-8 border-t border-white/10">
-            <Button onClick={handleSubmitProject} disabled={submitting || !projectTitle.trim()} className="w-full h-14 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black rounded-xl uppercase tracking-widest">
+          <div className="p-8 border-t border-slate-100 bg-white">
+            <Button onClick={handleSubmitProject} disabled={submitting || !projectTitle.trim()} className="w-full h-14 glow-pill-primary font-black uppercase tracking-widest text-sm">
               {submitting ? <><Loader2 size={16} className="animate-spin mr-2" /> AI Mengevaluasi...</> : '🤖 Submit & Evaluasi'}
             </Button>
           </div>

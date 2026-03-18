@@ -20,10 +20,11 @@ Respond ONLY in valid JSON:
   "feedback": "2 paragraphs of constructive mentor feedback in Indonesian. Praise strengths and suggest 1 area for improvement.",
   "earnedSkills": ["skill1", "skill2"] // 2-3 specific technical skills demonstrated
 }
+Do NOT use any emojis in your response.
 `;
 
     const completion = await groq.chat.completions.create({
-      messages: [{ role: 'system', content: 'Output JSON only.' }, { role: 'user', content: prompt }],
+      messages: [{ role: 'system', content: 'Output JSON only. No emojis.' }, { role: 'user', content: prompt }],
       model: 'llama-3.3-70b-versatile',
       temperature: 0.6,
       max_tokens: 1000,

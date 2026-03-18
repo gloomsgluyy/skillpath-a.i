@@ -24,13 +24,13 @@ export function Navbar() {
     if (currentUser?.uid) {
       getAIRecommendation(currentUser.uid)
         .then(rec => setTargetCareer(rec?.careerTitle || null))
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [currentUser]);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
-      <motion.div 
+      <motion.div
         initial={{ y: -10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -60,8 +60,8 @@ export function Navbar() {
         {currentUser && (
           <div className="hidden xl:flex items-center gap-4">
             {NAV_LINKS.map((link) => (
-              <Link 
-                key={link.label} 
+              <Link
+                key={link.label}
                 href={link.href}
                 className="flex items-center gap-2 px-3 py-1.5 text-[13px] font-bold text-slate-600 hover:text-slate-900 transition-all group"
               >
@@ -92,7 +92,7 @@ export function Navbar() {
                 className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-full border border-amber-200 transition-all"
                 title="Personalisasi Ulang"
               >
-                🔄 Personalisasi Ulang
+                Personalisasi Ulang
               </button>
               <Link href="/profile" className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/50 hover:bg-white/80 transition-all border border-slate-200 cursor-pointer">
                 <img src={currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.email}`} alt="Avatar" className="w-6 h-6 rounded-full" />
@@ -103,8 +103,8 @@ export function Navbar() {
               </button>
             </div>
           ) : (
-            <Button 
-              onClick={signInWithGoogle} 
+            <Button
+              onClick={signInWithGoogle}
               className="glow-pill-amber font-black px-8 py-6 h-auto text-sm tracking-wide"
             >
               Mulai Navigasi
