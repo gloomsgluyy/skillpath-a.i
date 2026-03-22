@@ -186,14 +186,14 @@ function Splitter({
   }, []);
 
   const handleMouseUp = React.useCallback(
-    (e: MouseEvent): void => {
+    (): void => {
       handleInteractionEnd();
     },
     [handleInteractionEnd],
   );
 
   const handleTouchEnd = React.useCallback(
-    (e: TouchEvent): void => {
+    (): void => {
       handleInteractionEnd();
     },
     [handleInteractionEnd],

@@ -1,0 +1,7 @@
+
+Conflicts in c:/Users/Glooms/Downloads/JKJK2/my-app/app/explore/page.tsx:
+
+Conflicts in c:/Users/Glooms/Downloads/JKJK2/my-app/app/journey/page.tsx:
+L4: <<<<<<< HEAD
+L300: =======
+L521: >>>>>>> origin/Explore-Career
