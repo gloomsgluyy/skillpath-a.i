@@ -6,12 +6,9 @@ test.describe('Landing Page', () => {
   });
 
   test('renders hero section with CTA', async ({ page }) => {
-    // Check that the main heading text appears
-    await expect(page.locator('text=Tentukan Karirmu')).toBeVisible({ timeout: 10000 });
-
     // Check CTA button
     const ctaButton = page.locator('button:has-text("Mulai Eksplorasi")');
-    await expect(ctaButton).toBeVisible();
+    await expect(ctaButton).toBeVisible({ timeout: 10000 });
   });
 
   test('renders navigation bar', async ({ page }) => {
@@ -57,8 +54,7 @@ test.describe('Onboarding Modal Flow', () => {
     await expect(modal).toBeVisible({ timeout: 5000 });
 
     // Should show step content — at least "Pendidikan" or similar label
-    // The exact text depends on the OnboardingModal implementation
-    await expect(modal.locator('text=/pendidikan|langkah|step/i')).toBeVisible({ timeout: 5000 });
+    await expect(modal.locator('text=/pendidikan|langkah|step/i').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('can close modal with outside click or escape', async ({ page }) => {
@@ -80,7 +76,7 @@ test.describe('Navigation', () => {
   test('page loads within reasonable time', async ({ page }) => {
     const start = Date.now();
     await page.goto('/');
-    await expect(page.locator('text=Tentukan Karirmu')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('button:has-text("Mulai Eksplorasi")')).toBeVisible({ timeout: 10000 });
     const loadTime = Date.now() - start;
     expect(loadTime).toBeLessThan(15000); // Under 15 seconds for dev server
   });

@@ -40,6 +40,7 @@ export default function SkillPathsPage() {
     async function load() {
       if (!currentUser?.uid) { setLoading(false); return; }
 
+      // Get current target career from URL param, localStorage, or AI recommendation
       const careerParam = searchParams.get('career');
       let targetCareer = careerParam || localStorage.getItem('skillpath_target_career') || '';
 
@@ -49,11 +50,12 @@ export default function SkillPathsPage() {
       }
 
       if (!targetCareer) {
-        targetCareer = 'Full-Stack Developer';
+        targetCareer = 'Full-Stack Developer'; // fallback
       }
       
       localStorage.setItem('skillpath_target_career', targetCareer);
 
+      // Check if there's an existing skill path that matches CURRENT target career
       const existingPath = await getSkillPath(currentUser.uid);
       if (existingPath && existingPath.targetCareer === targetCareer) {
         setCareer(existingPath.targetCareer);
@@ -108,6 +110,7 @@ export default function SkillPathsPage() {
         if (n.id === node.id) return { ...n, status: 'completed' as const };
         return n;
       });
+      // Unlock next locked node
       const nextLocked = updatedNodes.find(n => n.status === 'locked');
       if (nextLocked) nextLocked.status = 'active';
 
@@ -163,36 +166,36 @@ export default function SkillPathsPage() {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen pt-24">
         <Navbar />
         <div className="max-w-xl mx-auto text-center py-20 px-4">
-          <div className="w-16 h-16 rounded-xl bg-orange-100 flex items-center justify-center mx-auto mb-6">
-            <Map size={32} className="text-orange-500" />
+          <div className="w-20 h-20 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <Map size={36} className="text-white" />
           </div>
-          <h2 className="text-3xl font-bold mb-4 text-gray-900">Login Diperlukan</h2>
-          <p className="text-gray-600 mb-8">Kamu perlu login untuk mengakses Skill Paths yang dipersonalisasi.</p>
-          <button onClick={() => router.push('/')} className="btn-primary px-8 py-3">
+          <h2 className="text-3xl font-black mb-4 text-slate-900">Login Diperlukan</h2>
+          <p className="text-slate-600 mb-8">Kamu perlu login untuk mengakses Skill Paths yang dipersonalisasi.</p>
+          <Button onClick={() => router.push('/')} className="glow-pill-primary font-black px-8 py-3">
             Kembali ke Home
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen text-gray-900">
+    <div className="min-h-screen text-slate-900">
       <Navbar />
-      <div className="flex h-[calc(100vh-64px)]">
+      <div className="flex h-[calc(100vh-80px)] pt-20">
         {/* Left: Chat Panel */}
-        <div className="w-full lg:w-[30%] flex flex-col border-r border-gray-200 bg-white">
-          <div className="p-4 border-b border-gray-200 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center">
+        <div className="w-full lg:w-[30%] flex flex-col border-r border-slate-200/50 bg-white/50 backdrop-blur-2xl">
+          <div className="p-4 border-b border-slate-200/50 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg">
               <Bot size={20} className="text-white" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-gray-900">AI Consultant</h3>
-              <span className="text-[10px] text-green-600 flex items-center gap-1 font-medium">
-                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> Online
+              <h3 className="font-extrabold text-sm text-slate-900 tracking-tight">AI Consultant</h3>
+              <span className="text-[10px] text-emerald-600 flex items-center gap-1 font-bold">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Online
               </span>
             </div>
           </div>
@@ -204,10 +207,10 @@ export default function SkillPathsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
-                  "max-w-[90%] rounded-lg px-4 py-3 text-sm",
+                  "max-w-[90%] rounded-[1.25rem] px-4 py-3 text-sm",
                   msg.role === 'ai'
-                    ? "bg-gray-50 border border-gray-100 mr-auto text-gray-700 prose prose-sm prose-gray prose-p:leading-relaxed prose-a:text-orange-600 max-w-none"
-                    : "bg-orange-500 text-white ml-auto shadow-sm"
+                    ? "bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] mr-auto text-slate-700 rounded-bl-lg prose prose-sm prose-slate prose-p:leading-relaxed prose-a:text-amber-600 max-w-none"
+                    : "bg-slate-900 text-white ml-auto rounded-br-lg shadow-md"
                 )}
               >
                 {msg.role === 'ai' ? (
@@ -223,28 +226,28 @@ export default function SkillPathsPage() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="max-w-[70%] bg-gray-50 border border-gray-100 mr-auto rounded-lg px-4 py-4 flex items-center gap-2"
+                className="max-w-[70%] bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] mr-auto rounded-[1.25rem] rounded-bl-lg px-4 py-4 flex items-center gap-2"
               >
                 <div className="flex gap-1.5">
-                  <motion.div className="w-2 h-2 rounded-full bg-gray-300" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut', delay: 0 }} />
-                  <motion.div className="w-2 h-2 rounded-full bg-gray-300" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut', delay: 0.2 }} />
-                  <motion.div className="w-2 h-2 rounded-full bg-gray-400" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut', delay: 0.4 }} />
+                  <motion.div className="w-2 h-2 rounded-full bg-slate-300" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut', delay: 0 }} />
+                  <motion.div className="w-2 h-2 rounded-full bg-slate-300" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut', delay: 0.2 }} />
+                  <motion.div className="w-2 h-2 rounded-full bg-slate-400" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut', delay: 0.4 }} />
                 </div>
               </motion.div>
             )}
             <div ref={chatEndRef} />
           </div>
 
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-slate-200/50">
             <div className="flex gap-2">
               <input
                 value={inputMsg}
                 onChange={(e) => setInputMsg(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder="Tanya tentang roadmap..."
-                className="input-clean flex-1 text-sm"
+                className="flex-1 bg-white rounded-xl px-4 py-3 text-sm font-medium outline-none placeholder:text-slate-400 border border-slate-200 focus:border-amber-400 focus:ring-4 focus:ring-amber-500/10 transition-all shadow-sm text-slate-900"
               />
-              <Button onClick={handleSendMessage} disabled={chatLoading} className="bg-orange-500 hover:bg-orange-600 rounded-lg px-4 text-white">
+              <Button onClick={handleSendMessage} disabled={chatLoading} className="bg-slate-900 hover:bg-slate-800 rounded-xl px-4 shadow-md text-white">
                 <Send size={16} />
               </Button>
             </div>
@@ -252,21 +255,22 @@ export default function SkillPathsPage() {
         </div>
 
         {/* Right: Roadmap Canvas */}
-        <div className="hidden lg:flex flex-1 flex-col relative overflow-auto bg-gray-50">
+        <div className="hidden lg:flex flex-1 flex-col relative overflow-auto">
+          {/* Subtle dot grid — matches landing page's aesthetic */}
           <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
 
           {loading || generating ? (
             <div className="relative p-8 min-h-full">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <Skeleton className="h-8 w-48 mb-2 bg-gray-200 rounded-lg" />
-                  <Skeleton className="h-4 w-32 bg-gray-200 rounded" />
+                  <Skeleton className="h-8 w-48 mb-2 bg-slate-200/50 rounded-xl" />
+                  <Skeleton className="h-4 w-32 bg-slate-200/50 rounded-md" />
                 </div>
-                <Skeleton className="h-6 w-16 rounded-full bg-gray-200" />
+                <Skeleton className="h-6 w-16 rounded-full bg-slate-200/50" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                 {[...Array(6)].map((_, i) => (
-                  <Skeleton key={i} className="h-40 rounded-lg bg-gray-200" />
+                  <Skeleton key={i} className="h-40 rounded-[1.5rem] bg-slate-200/50" />
                 ))}
               </div>
             </div>
@@ -274,10 +278,10 @@ export default function SkillPathsPage() {
             <div className="relative p-8 min-h-full">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Roadmap: {career}</h2>
-                  <p className="text-gray-500 text-sm mt-1">{nodes.filter(n => n.status === 'completed').length}/{nodes.length} tahapan selesai</p>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Roadmap: {career}</h2>
+                  <p className="text-slate-500 text-sm font-medium mt-1">{nodes.filter(n => n.status === 'completed').length}/{nodes.length} tahapan selesai</p>
                 </div>
-                <Badge variant="outline" className="text-gray-600 border-gray-300 font-medium">
+                <Badge variant="outline" className="text-slate-600 border-slate-300 font-bold">
                   {nodes.filter(n => n.status === 'completed').length}/{nodes.length}
                 </Badge>
               </div>
@@ -292,44 +296,44 @@ export default function SkillPathsPage() {
                         transition={{ delay: i * 0.06, type: 'spring', bounce: 0.3 }}
                         onClick={() => handleNodeClick(node)}
                         className={cn(
-                          "p-5 rounded-lg border cursor-pointer transition-all duration-200 group bg-white",
+                          "p-5 rounded-[1.5rem] border cursor-pointer transition-all duration-500 group",
                           node.status === 'completed'
-                            ? "border-l-4 border-l-green-500 border-t-green-100 border-r-green-100 border-b-green-100 bg-green-50/50"
+                            ? "bg-white border-emerald-200 shadow-[0_8px_30px_rgba(16,185,129,0.08)]"
                             : node.status === 'active'
-                              ? "border-l-4 border-l-orange-500 border-t-gray-200 border-r-gray-200 border-b-gray-200 shadow-md hover:shadow-lg hover:-translate-y-1"
-                              : "border-gray-200 opacity-60"
+                              ? "bg-white/50 backdrop-blur-2xl border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1"
+                              : "bg-slate-50/50 border-slate-200/50 opacity-60"
                         )}
                       >
                         <div className="flex items-center gap-3 mb-3">
                           <div className={cn(
-                            "w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold",
-                            node.status === 'completed' ? "bg-green-500 text-white" :
-                            node.status === 'active' ? "bg-orange-500 text-white" :
-                            "bg-gray-200 text-gray-400"
+                            "w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black",
+                            node.status === 'completed' ? "bg-emerald-500 text-white shadow-md" :
+                            node.status === 'active' ? "bg-slate-900 text-white shadow-lg" :
+                            "bg-slate-200 text-slate-400"
                           )}>
                             {node.status === 'completed' ? <CheckCircle2 size={16} /> : i + 1}
                           </div>
-                          <h4 className={cn("font-bold text-sm flex-1", node.status === 'completed' ? "text-green-900" : node.status === 'active' ? "text-gray-900" : "text-gray-400")}>{node.title}</h4>
+                          <h4 className={cn("font-black text-sm flex-1 tracking-tight", node.status === 'completed' ? "text-emerald-900" : node.status === 'active' ? "text-slate-900" : "text-slate-400")}>{node.title}</h4>
                         </div>
-                        <p className={cn("text-xs line-clamp-2 leading-relaxed", node.status === 'active' ? "text-gray-600" : "text-gray-400")}>{node.description}</p>
-                        <div className="mt-4 flex items-center justify-between pt-3 border-t border-gray-200">
-                          <span className="text-[10px] text-gray-500 font-medium">{node.estimatedHours}h estimasi</span>
-                          <span className={cn(
-                            "text-[9px] font-semibold px-2 py-0.5 rounded-full",
-                            node.status === 'completed' ? "bg-green-100 text-green-700" :
-                            node.status === 'active' ? "bg-orange-100 text-orange-700" :
-                            "bg-gray-100 text-gray-500"
+                        <p className={cn("text-xs line-clamp-2 leading-relaxed", node.status === 'active' ? "text-slate-600" : "text-slate-400")}>{node.description}</p>
+                        <div className="mt-4 flex items-center justify-between">
+                          <span className="text-[10px] text-slate-500 font-medium">{node.estimatedHours}h estimasi</span>
+                          <Badge className={cn(
+                            "text-[9px] font-bold px-2 py-0.5 border-0",
+                            node.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
+                            node.status === 'active' ? "bg-amber-100 text-amber-700" :
+                            "bg-slate-100 text-slate-500"
                           )}>
                             {node.status === 'completed' ? 'Selesai' : node.status === 'active' ? 'Aktif' : 'Terkunci'}
-                          </span>
+                          </Badge>
                         </div>
                       </motion.div>
                     </HoverCardTrigger>
-                    <HoverCardContent className="bg-white border border-gray-200 text-gray-900 w-72 shadow-lg rounded-lg p-5">
-                      <h4 className="font-bold text-sm mb-2 text-gray-900">{node.title}</h4>
-                      <p className="text-gray-600 text-xs leading-relaxed">{node.description}</p>
-                      <p className="text-gray-500 text-xs mt-2 font-medium">Estimasi: {node.estimatedHours} jam</p>
-                      {node.status === 'active' && <p className="text-orange-600 text-xs mt-1 font-medium">Klik untuk menyelesaikan!</p>}
+                    <HoverCardContent className="bg-white/95 backdrop-blur-xl border-white/70 text-slate-900 w-72 shadow-[0_20px_60px_rgba(0,0,0,0.1)] rounded-2xl p-5">
+                      <h4 className="font-black text-sm mb-2 text-slate-900">{node.title}</h4>
+                      <p className="text-slate-600 text-xs leading-relaxed">{node.description}</p>
+                      <p className="text-slate-500 text-xs mt-2 font-medium">Estimasi: {node.estimatedHours} jam</p>
+                      {node.status === 'active' && <p className="text-amber-600 text-xs mt-1 font-bold">Klik untuk menyelesaikan!</p>}
                     </HoverCardContent>
                   </HoverCard>
                 ))}
