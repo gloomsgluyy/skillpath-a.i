@@ -1,14 +1,14 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User, signInWithPopup, signOut, updateProfile } from 'firebase/auth';
+import { onAuthStateChanged, User, signOut, updateProfile, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { saveUserProfile } from '@/lib/firestore';
 
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, pass: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -31,27 +31,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return unsubscribe;
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithEmail = async (email: string, pass: string, name?: string) => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
+      // Coba register dulu, atau login
+      let userRec;
+      try {
+        userRec = await signInWithEmailAndPassword(auth, email, pass);
+      } catch (e: any) {
+        // Jika belum ada/User Not Found, sekalian buatkan
+        if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+          userRec = await createUserWithEmailAndPassword(auth, email, pass);
+        } else {
+          throw e; // Error lain (wrong password, dll)
+        }
+      }
+
+      const user = userRec.user;
       
-      // Read onboarding data saved before login
       const storedRaw = localStorage.getItem('skillpath_onboarding_data');
       const onboardingData = storedRaw ? JSON.parse(storedRaw) : {};
       
-      // If user typed a custom displayName during onboarding, use that instead of Google's
-      const customName = onboardingData.displayName;
+      const customName = name || onboardingData.displayName || user.displayName || 'Test User';
+      
       if (customName && customName.trim()) {
         await updateProfile(user, { displayName: customName.trim() });
-        // Force re-read of user so UI updates
         setCurrentUser({ ...user, displayName: customName.trim() } as User);
       }
       
-      // Save full profile to Firestore
       await saveUserProfile(user.uid, {
         uid: user.uid,
-        displayName: customName?.trim() || user.displayName || 'User',
+        displayName: customName.trim(),
         email: user.email,
         photoURL: user.photoURL,
         pendidikan: onboardingData.pendidikan || '',
@@ -60,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }).catch((err: any) => console.error('Firestore save error:', err));
       
     } catch (error) {
-      console.error("Error signing in with Google", error);
+      console.error("Error signing in with Email", error);
       throw error;
     }
   };
@@ -70,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     currentUser,
     loading,
-    signInWithGoogle,
+    signInWithEmail,
     logout
   };
 

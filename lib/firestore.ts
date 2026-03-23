@@ -1,6 +1,24 @@
 import { db } from './firebase';
 import { doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where, increment, serverTimestamp } from 'firebase/firestore';
 
+// ===================== MEMORY CACHE =====================
+const memCache = new Map<string, { data: any, exp: number }>();
+const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+
+function getCached<T>(key: string): T | null {
+  const item = memCache.get(key);
+  if (item && item.exp > Date.now()) return item.data as T;
+  return null;
+}
+
+function setCached(key: string, data: any) {
+  if (data) memCache.set(key, { data, exp: Date.now() + CACHE_TTL });
+}
+
+function invalidateCache(key: string) {
+  memCache.delete(key);
+}
+
 // ===================== USER PROFILES =====================
 
 export interface UserProfile {
@@ -23,34 +41,44 @@ export interface UserProfile {
 
 export const saveUserProfile = async (uid: string, data: Partial<UserProfile>) => {
   if (!uid) return;
-  const userRef = doc(db, 'users', uid);
-  const userSnap = await getDoc(userRef);
+  try {
+    const userRef = doc(db, 'users', uid);
+    const userSnap = await getDoc(userRef);
 
-  if (!userSnap.exists()) {
-    await setDoc(userRef, {
-      ...data,
-      uid,
-      createdAt: serverTimestamp(),
-      lastLoginAt: serverTimestamp(),
-      points: 0,
-      level: 1,
-      completedTaskCount: 0,
-      completedProjectCount: 0,
-    });
-  } else {
-    await updateDoc(userRef, {
-      ...data,
-      lastLoginAt: serverTimestamp(),
-    });
+    if (!userSnap.exists()) {
+      await setDoc(userRef, {
+        ...data,
+        uid,
+        createdAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp(),
+        points: 0,
+        level: 1,
+        completedTaskCount: 0,
+        completedProjectCount: 0,
+      });
+    } else {
+      await updateDoc(userRef, {
+        ...data,
+        lastLoginAt: serverTimestamp(),
+      });
+    }
+  } catch (e) {
+    console.warn('saveUserProfile offline/error:', e);
   }
 };
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
   if (!uid) return null;
+  const cacheKey = `user_${uid}`;
+  const cached = getCached<UserProfile>(cacheKey);
+  if (cached) return cached;
+
   try {
     const userRef = doc(db, 'users', uid);
     const snap = await getDoc(userRef);
-    return snap.exists() ? (snap.data() as UserProfile) : null;
+    const data = snap.exists() ? (snap.data() as UserProfile) : null;
+    setCached(cacheKey, data);
+    return data;
   } catch (error) {
     console.warn('getUserProfile offline/error:', error);
     return null;
@@ -64,6 +92,7 @@ export const incrementUserPoints = async (uid: string, amount: number) => {
     await updateDoc(userRef, {
       points: increment(amount),
     });
+    invalidateCache(`user_${uid}`);
   } catch (e) { console.error('incrementUserPoints error:', e); }
 };
 
@@ -79,20 +108,30 @@ export interface AIRecommendation {
 
 export const saveAIRecommendation = async (uid: string, result: Omit<AIRecommendation, 'savedAt'>) => {
   if (!uid) return;
-  const ref = doc(db, 'recommendations', uid);
-  await setDoc(ref, {
-    uid,
-    ...result,
-    savedAt: serverTimestamp(),
-  });
+  try {
+    const ref = doc(db, 'recommendations', uid);
+    await setDoc(ref, {
+      uid,
+      ...result,
+      savedAt: serverTimestamp(),
+    });
+  } catch (e) {
+    console.warn('saveAIRecommendation error:', e);
+  }
 };
 
 export const getAIRecommendation = async (uid: string): Promise<AIRecommendation | null> => {
   if (!uid) return null;
+  const cacheKey = `ai_rec_${uid}`;
+  const cached = getCached<AIRecommendation>(cacheKey);
+  if (cached) return cached;
+
   try {
     const ref = doc(db, 'recommendations', uid);
     const snap = await getDoc(ref);
-    return snap.exists() ? (snap.data() as AIRecommendation) : null;
+    const data = snap.exists() ? (snap.data() as AIRecommendation) : null;
+    setCached(cacheKey, data);
+    return data;
   } catch (error) {
     console.warn('getAIRecommendation offline/error:', error);
     return null;
@@ -101,9 +140,13 @@ export const getAIRecommendation = async (uid: string): Promise<AIRecommendation
 
 export const deleteAIRecommendation = async (uid: string) => {
   if (!uid) return;
-  const ref = doc(db, 'recommendations', uid);
-  const { deleteDoc } = await import('firebase/firestore');
-  await deleteDoc(ref);
+  try {
+    const ref = doc(db, 'recommendations', uid);
+    const { deleteDoc } = await import('firebase/firestore');
+    await deleteDoc(ref);
+  } catch (e) {
+    console.warn('deleteAIRecommendation error:', e);
+  }
 };
 
 // ===================== ASSESSMENTS =====================
@@ -119,9 +162,13 @@ export interface AssessmentResult {
 
 export const saveAssessmentResults = async (uid: string, answers: number[], aiResult: AssessmentResult) => {
   if (!uid) return;
-  const ref = doc(db, 'assessments', uid);
-  await setDoc(ref, { uid, answers, result: aiResult, completedAt: serverTimestamp() });
-  await incrementUserPoints(uid, 100);
+  try {
+    const ref = doc(db, 'assessments', uid);
+    await setDoc(ref, { uid, answers, result: aiResult, completedAt: serverTimestamp() });
+    await incrementUserPoints(uid, 100);
+  } catch (e) {
+    console.warn('saveAssessmentResults error:', e);
+  }
 };
 
 export const getUserAssessment = async (uid: string) => {
@@ -151,22 +198,32 @@ export interface SkillPathNode {
 
 export const saveSkillPath = async (uid: string, career: string, nodes: SkillPathNode[]) => {
   if (!uid) return;
-  const ref = doc(db, 'skillpaths', uid);
-  await setDoc(ref, {
-    uid,
-    targetCareer: career,
-    nodes,
-    createdAt: serverTimestamp(),
-    lastUpdated: serverTimestamp(),
-  });
+  try {
+    const ref = doc(db, 'skillpaths', uid);
+    await setDoc(ref, {
+      uid,
+      targetCareer: career,
+      nodes,
+      createdAt: serverTimestamp(),
+      lastUpdated: serverTimestamp(),
+    });
+  } catch (e) {
+    console.warn('saveSkillPath error:', e);
+  }
 };
 
 export const getSkillPath = async (uid: string) => {
   if (!uid) return null;
+  const cacheKey = `skillpath_${uid}`;
+  const cached = getCached<any>(cacheKey);
+  if (cached) return cached;
+
   try {
     const ref = doc(db, 'skillpaths', uid);
     const snap = await getDoc(ref);
-    return snap.exists() ? snap.data() : null;
+    const data = snap.exists() ? snap.data() : null;
+    setCached(cacheKey, data);
+    return data;
   } catch (error) {
     console.warn('getSkillPath offline/error:', error);
     return null;
@@ -198,28 +255,39 @@ export interface JourneyTask {
   estimatedMinutes: number;
   completed: boolean;
   completedAt: any | null;
+  resources?: { title: string; url: string }[];
 }
 
 export const saveUserJourney = async (uid: string, career: string, tasks: JourneyTask[]) => {
   if (!uid) return;
-  const ref = doc(db, 'journeys', uid);
-  await setDoc(ref, {
-    uid,
-    targetCareer: career,
-    tasks,
-    streak: 0,
-    lastCompletedDate: null,
-    createdAt: serverTimestamp(),
-    lastUpdated: serverTimestamp(),
-  });
+  try {
+    const ref = doc(db, 'journeys', uid);
+    await setDoc(ref, {
+      uid,
+      targetCareer: career,
+      tasks,
+      streak: 0,
+      lastCompletedDate: null,
+      createdAt: serverTimestamp(),
+      lastUpdated: serverTimestamp(),
+    });
+  } catch (e) {
+    console.warn('saveUserJourney error:', e);
+  }
 };
 
 export const getUserJourney = async (uid: string) => {
   if (!uid) return null;
+  const cacheKey = `journey_${uid}`;
+  const cached = getCached<any>(cacheKey);
+  if (cached) return cached;
+
   try {
     const ref = doc(db, 'journeys', uid);
     const snap = await getDoc(ref);
-    return snap.exists() ? snap.data() : null;
+    const data = snap.exists() ? snap.data() : null;
+    setCached(cacheKey, data);
+    return data;
   } catch (error) {
     console.warn('getUserJourney offline/error:', error);
     return null;
@@ -277,16 +345,20 @@ export interface ProjectEvaluation {
 
 export const saveProjectEvaluation = async (uid: string, project: Omit<ProjectEvaluation, 'submittedAt'>) => {
   if (!uid) return;
-  const ref = doc(db, 'projects', `${uid}_${project.id}`);
-  await setDoc(ref, {
-    uid,
-    ...project,
-    submittedAt: serverTimestamp(),
-  });
-  await incrementUserPoints(uid, 30);
+  try {
+    const ref = doc(db, 'projects', `${uid}_${project.id}`);
+    await setDoc(ref, {
+      uid,
+      ...project,
+      submittedAt: serverTimestamp(),
+    });
+    await incrementUserPoints(uid, 30);
 
-  const userRef = doc(db, 'users', uid);
-  await updateDoc(userRef, { completedProjectCount: increment(1) }).catch(() => {});
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, { completedProjectCount: increment(1) }).catch(() => {});
+  } catch (e) {
+    console.warn('saveProjectEvaluation error:', e);
+  }
 };
 
 export const getUserProjects = async (uid: string): Promise<ProjectEvaluation[]> => {

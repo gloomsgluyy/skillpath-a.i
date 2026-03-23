@@ -19,14 +19,16 @@ Respond ONLY in valid JSON format matching this EXACT structure:
     {
       "id": "task_1",
       "day": 1,
-      "title": "Task title (actionable, e.g., Tonton video intro konsep X)",
-      "estimatedMinutes": 30
+      "title": "Task title (actionable, e.g., Pelajari konsep dasar X)",
+      "estimatedMinutes": 30,
+      "resources": [{"title": "Nama Kursus/Video (Misal: YouTube FreeCodeCamp, W3Schools, dll)", "url": "https://..."}]
     },
     {
       "id": "task_2",
       "day": 2,
       "title": "Another task",
-      "estimatedMinutes": 45
+      "estimatedMinutes": 45,
+      "resources": [{"title": "Artikel tutorial", "url": "https://..."}]
     }
   ],
   "weeklyMilestone": "Reward title for finishing this week (m.g., 'Sertifikat Dasar-Dasar X')"

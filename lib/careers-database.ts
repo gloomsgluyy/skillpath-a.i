@@ -166,6 +166,11 @@ export function searchCareers(query: string, category?: string): Career[] {
   return results;
 }
 
+// Helper for fuzzy match
+function normalizeStr(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 // Dynamic matching algorithm
 export function computeMatchScore(
   career: Career,
@@ -175,12 +180,52 @@ export function computeMatchScore(
 
   let score = 0;
 
-  const userRoles = (userProfile.roleInterests || []).map(r => r.toLowerCase());
+  const userRoles = (userProfile.roleInterests || []);
   if (userRoles.length > 0) {
-    const roleMatches = career.relatedRoles.filter(r =>
-      userRoles.some(ur => ur.includes(r.toLowerCase()) || r.toLowerCase().includes(ur))
-    );
-    score += Math.min(50, (roleMatches.length / Math.max(1, career.relatedRoles.length)) * 70);
+    let roleMatched = false;
+    for (const ur of userRoles) {
+      const normUser = normalizeStr(ur);
+      const normTitle = normalizeStr(career.title);
+      const normCat = normalizeStr(career.category);
+      
+      // Direct substring match
+      if (normUser.includes(normTitle) || normTitle.includes(normUser) || 
+          normUser.includes(normCat) || normCat.includes(normUser)) {
+        roleMatched = true;
+        break;
+      }
+      
+      // Check related roles
+      for (const r of career.relatedRoles) {
+        const normR = normalizeStr(r);
+        if (normUser.includes(normR) || normR.includes(normUser)) {
+           roleMatched = true;
+           break;
+        }
+      }
+      if (roleMatched) break;
+    }
+    
+    // Token matching for partials like "A.I" vs "AI/ML"
+    if (!roleMatched) {
+      for (const ur of userRoles) {
+        const tokens = ur.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 1 && !['dan', 'and', 'or'].includes(w));
+        const careerTokens = [career.title, career.category, ...career.relatedRoles]
+          .join(' ')
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, ' ')
+          .split(/\s+/);
+          
+        if (tokens.some(t => careerTokens.includes(t))) {
+          roleMatched = true;
+          break;
+        }
+      }
+    }
+
+    if (roleMatched) {
+      score += 50; 
+    }
   }
 
   if (userProfile.archetype) {
@@ -188,12 +233,23 @@ export function computeMatchScore(
     if (idx !== -1) score += idx === 0 ? 25 : idx === 1 ? 18 : 12;
   }
 
-  const userJurusan = (userProfile.jurusan || userProfile.pendidikan || '').toLowerCase();
+  const userJurusan = (userProfile.jurusan || userProfile.pendidikan || '');
   if (userJurusan) {
-    if (career.relatedJurusan.some(j => userJurusan.includes(j) || j.includes(userJurusan))) {
+    const normJurusan = normalizeStr(userJurusan);
+    if (career.relatedJurusan.some(j => normJurusan.includes(normalizeStr(j)) || normalizeStr(j).includes(normJurusan))) {
       score += 25;
     }
   }
 
-  return score > 0 ? Math.min(99, Math.max(15, Math.round(score))) : 0;
+  // Boost matched role to minimum 75 if it hits the core interest
+  if (score >= 50 && score < 75) {
+    score = 75 + (career.title.length % 15);
+  }
+
+  // Base random fuzziness for non-matched
+  if (score === 0) {
+     score = 15 + ((career.title.length + career.category.length) % 20); 
+  }
+
+  return Math.min(99, Math.max(15, Math.round(score)));
 }

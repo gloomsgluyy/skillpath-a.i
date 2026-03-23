@@ -1,26 +1,40 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const recommendSchema = z.object({
+  pendidikan: z.string().optional(),
+  jurusan: z.string().optional(),
+  minat: z.string().min(1, 'Minat wajib diisi'),
+  archetype: z.string().optional(),
+  roleInterests: z.array(z.string()).optional(),
+});
 
 export async function POST(req: Request) {
   try {
-    const { pendidikan, jurusan, minat, archetype, roleInterests } = await req.json();
+    const body = await req.json();
+    const validation = recommendSchema.safeParse(body);
 
-    if (!minat) {
-      return NextResponse.json({ error: 'Data tidak lengkap.' }, { status: 400 });
+    if (!validation.success) {
+      return NextResponse.json({ error: 'Validasi data gagal.', details: validation.error.format() }, { status: 400 });
     }
 
-    const prompt = `Sebagai konsultan karir AI elit untuk dunia Teknologi dan Digital, analisislah profil berikut:
+    const { pendidikan, jurusan, minat, archetype, roleInterests } = validation.data;
+
+    const prompt = `Sebagai konsultan karir AI elit, analisislah profil berikut:
 - Pendidikan: ${pendidikan || 'Belum diisi'}
 - Bidang/Jurusan: ${jurusan || 'Belum diisi'}
 - Arketipe Kerja: ${archetype || 'Belum diisi'}
 - Role yang SECARA EKSPLISIT Diminati Pengguna: ${roleInterests?.join(', ') || 'Belum diisi'}
 - Minat & Hobi: ${minat}
 
-1. Anda WAJIB merekomendasikan 3 pilihan karir yang berbeda namun relevan dengan profil pengguna. Prioritaskan setidaknya 1-2 karir dari daftar "Role yang Diminati" jika ada.
-2. Setiap rekomendasi harus berbeda fokusnya (misal: satu lebih teknis, satu lebih manajerial/kreatif, satu spesialis).
-3. Pertimbangkan jurusan/pendidikan pengguna secara mendalam.
-4. Berikan skor kecocokan (70-100) yang realistis untuk setiap opsi.
-5. Berikan alasan singkat kenapa karir tersebut cocok (max 2 kalimat, Bahasa Indonesia, nada motivatif).
-6. List 3 skill teknis utama yang harus dipelajari khusus untuk karir tersebut.
+INSTRUKSI KETAT:
+1. Rekomendasikan 3 pilihan karir. PRIORITASKAN karir yang SANGAT RELEVAN dengan "Role yang Diminati" atau "Arketipe" (misal: Jika minat AI/ML, JANGAN merekomendasikan Desain/UI/UX kecuali dia punya background desain kuat).
+2. Berikan skor kecocokan yang LOGIS dan KRITIS:
+   - 88-99%: Sangat sesuai dengan Role yang Diminati & Jurusan
+   - 70-87%: Sesuai secara fungsi atau skill transferabel
+   - JANGAN MENGARANG SKOR TINGGI (>90%) untuk karir lintas bidang yang tidak nyambung (misal MLOps ke UX/UI).
+3. Berikan alasan singkat namun berbobot kenapa karir tersebut cocok (max 2 kalimat, Bahasa Indonesia).
+4. List 3 skill teknis utama (hard skills spesifik seperti PyTorch, Figma, AWS) yang relevan.
 
 Format output WAJIB JSON:
 {

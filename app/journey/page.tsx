@@ -5,12 +5,14 @@ import { motion } from 'motion/react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { PlayCircle, CheckCircle2, Flame, Trophy, Star, BookOpen, Loader2, Sparkles, Target } from 'lucide-react';
+import { PlayCircle, CheckCircle2, Flame, Trophy, Star, BookOpen, Sparkles, Target } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getUserJourney, saveUserJourney, markTaskCompleted, getAIRecommendation, type JourneyTask } from '@/lib/firestore';
+import confetti from 'canvas-confetti';
 
 export default function LearningJourney() {
   const { currentUser } = useAuth();
@@ -26,11 +28,13 @@ export default function LearningJourney() {
     async function load() {
       if (!currentUser?.uid) { setLoading(false); return; }
 
-      // Get current target career from AI recommendation
-      const rec = await getAIRecommendation(currentUser.uid);
-      const targetCareer = rec?.careerTitle || 'Full-Stack Developer';
+      let targetCareer = localStorage.getItem('skillpath_target_career') || '';
+      if (!targetCareer) {
+        const rec = await getAIRecommendation(currentUser.uid);
+        targetCareer = rec?.careerTitle || 'Full-Stack Developer';
+        localStorage.setItem('skillpath_target_career', targetCareer);
+      }
 
-      // Check if there's an existing journey that matches their CURRENT target career
       const existing = await getUserJourney(currentUser.uid);
       if (existing && existing.targetCareer === targetCareer) {
         setTasks(existing.tasks || []);
@@ -77,6 +81,13 @@ export default function LearningJourney() {
     const task = tasks.find(t => t.id === taskId);
     if (!task || task.completed) return;
 
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#f59e0b', '#10b981', '#3b82f6', '#ec4899']
+    });
+
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, completed: true, completedAt: new Date().toISOString() } : t));
     await markTaskCompleted(currentUser.uid, taskId);
     setStreak(prev => prev + 1);
@@ -87,32 +98,36 @@ export default function LearningJourney() {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen pt-24">
+      <div className="min-h-screen">
         <Navbar />
         <div className="max-w-xl mx-auto text-center py-20 px-4">
-          <div className="w-20 h-20 rounded-2xl bg-slate-900 flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <BookOpen size={36} className="text-white" />
+          <div className="w-16 h-16 rounded-xl bg-orange-100 flex items-center justify-center mx-auto mb-6">
+            <BookOpen size={32} className="text-orange-500" />
           </div>
-          <h2 className="text-3xl font-black mb-4 text-slate-900">Login Diperlukan</h2>
-          <p className="text-slate-600 mb-8">Login untuk mengakses Learning Journey.</p>
-          <Button onClick={() => router.push('/')} className="glow-pill-primary font-black px-8 py-3">Kembali</Button>
+          <h2 className="text-3xl font-bold mb-4 text-gray-900">Login Diperlukan</h2>
+          <p className="text-gray-600 mb-8">Login untuk mengakses Learning Journey.</p>
+          <button onClick={() => router.push('/')} className="btn-primary px-8 py-3">Kembali</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-16 overflow-x-hidden relative">
+    <div className="min-h-screen pb-16">
       <Navbar />
-      {/* Subtle mesh — matches landing page */}
-      <div className="fixed inset-0 z-[1] pointer-events-none bg-[radial-gradient(circle_at_80%_20%,rgba(255,126,95,0.06)_0%,transparent_50%),radial-gradient(circle_at_20%_80%,rgba(254,180,123,0.05)_0%,transparent_50%)]" />
 
-      <main className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
+      <main className="max-w-6xl mx-auto px-4 md:px-6 pt-8">
         {loading || generating ? (
-          <div className="flex items-center justify-center py-32">
-            <div className="text-center">
-              <Loader2 size={48} className="text-amber-400 animate-spin mx-auto mb-4" />
-              <p className="text-slate-500 font-bold">{generating ? 'AI sedang membuat learning journey...' : 'Memuat...'}</p>
+          <div className="flex flex-col lg:flex-row gap-8">
+            <div className="w-full lg:w-[300px] flex flex-col gap-6 shrink-0">
+              <Skeleton className="h-[250px] rounded-lg bg-gray-200" />
+              <Skeleton className="h-[200px] rounded-lg bg-gray-200" />
+            </div>
+            <div className="flex-1 space-y-4">
+              <Skeleton className="h-8 w-[200px] bg-gray-200 rounded mb-4" />
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-[100px] rounded-lg bg-gray-200" />
+              ))}
             </div>
           </div>
         ) : (
@@ -121,172 +136,119 @@ export default function LearningJourney() {
             {/* Left: Stats Sidebar */}
             <div className="w-full lg:w-[300px] flex flex-col gap-6 shrink-0">
 
-              {/* Progress Card — Landing page's white card style */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-[2rem] bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.03)] p-7"
-              >
+              {/* Progress Card */}
+              <div className="card-plain border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-extrabold text-slate-900 text-sm tracking-tight">Progress</h3>
-                  <Badge variant="outline" className="text-slate-600 border-slate-300 font-bold text-xs">
-                    {completedCount}/{tasks.length}
-                  </Badge>
+                  <h3 className="font-bold text-gray-900 text-sm">Progress</h3>
+                  <span className="text-gray-500 text-xs font-medium">{completedCount}/{tasks.length}</span>
                 </div>
 
                 {/* Progress Ring */}
-                <div className="relative w-36 h-36 mx-auto mb-6">
+                <div className="relative w-32 h-32 mx-auto mb-6">
                   <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
                     <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none" stroke="rgba(0,0,0,0.04)" strokeWidth="3" />
+                      fill="none" stroke="#E5E7EB" strokeWidth="3" />
                     <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none" stroke="url(#progressGrad)" strokeWidth="3"
+                      fill="none" stroke="#F97316" strokeWidth="3"
                       strokeDasharray={`${progressPct}, 100`}
                       strokeLinecap="round" />
-                    <defs>
-                      <linearGradient id="progressGrad"><stop offset="0%" stopColor="#f59e0b" /><stop offset="100%" stopColor="#ef4444" /></linearGradient>
-                    </defs>
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-black text-slate-900">{progressPct}%</span>
-                    <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-0.5">selesai</span>
+                    <span className="text-3xl font-bold text-gray-900">{progressPct}%</span>
+                    <span className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mt-0.5">selesai</span>
                   </div>
                 </div>
 
                 {/* Progress bar */}
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${progressPct}%` }}
                     transition={{ duration: 1 }}
-                    className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_0_8px_rgba(245,158,11,0.3)]"
+                    className="h-full rounded-full bg-orange-500"
                   />
                 </div>
-              </motion.div>
+              </div>
 
-              {/* Streak — Landing page's solid white card style */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="rounded-[2rem] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 p-7 text-center"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center mx-auto mb-3">
-                  <Flame size={28} className="text-orange-500" />
+              {/* Streak */}
+              <div className="card-plain border border-gray-200 p-6 text-center">
+                <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center mx-auto mb-3">
+                  <Flame size={24} className="text-orange-500" />
                 </div>
-                <div className="text-3xl font-black text-slate-900">{streak}</div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-1">Hari Streak</div>
-              </motion.div>
+                <div className="text-3xl font-bold text-gray-900">{streak}</div>
+                <div className="text-xs text-gray-500 font-medium mt-1">Hari Streak</div>
+              </div>
 
-              {/* Career — Landing page's statement card (dark) */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="rounded-[1.5rem] bg-slate-900 p-6 relative overflow-hidden"
-              >
-                <div className="absolute inset-0 opacity-20 pointer-events-none">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/20 to-transparent" />
+              {/* Career */}
+              <div className="bg-gray-900 rounded-lg p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target size={14} className="text-orange-400" />
+                  <span className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">Target Karir</span>
                 </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target size={14} className="text-amber-400" />
-                    <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Target Karir</span>
-                  </div>
-                  <p className="text-lg font-black text-white leading-tight">{career}</p>
-                </div>
-              </motion.div>
+                <p className="text-lg font-bold text-white leading-tight">{career}</p>
+              </div>
             </div>
 
             {/* Right: Task List */}
             <div className="flex-1">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between mb-8"
-              >
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                  <BookOpen size={24} className="text-amber-500" />
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                  <BookOpen size={24} className="text-orange-500" />
                   Daily Tasks
                 </h2>
-                <Badge variant="outline" className="text-slate-500 border-slate-300 font-bold">
-                  {completedCount} selesai
-                </Badge>
-              </motion.div>
+                <span className="text-sm text-gray-500 font-medium">{completedCount} selesai</span>
+              </div>
 
               <div className="space-y-3">
                 {tasks.map((task, i) => (
-                  <TooltipProvider key={task.id}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <motion.div
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: Math.min(i * 0.04, 0.5) }}
-                          onClick={() => handleToggleTask(task.id)}
-                          className={cn(
-                            "flex items-center gap-4 p-4 rounded-[1.25rem] border transition-all duration-300 cursor-pointer group",
-                            task.completed
-                              ? "bg-white border-emerald-200 shadow-sm"
-                              : "bg-white/50 backdrop-blur-2xl border-white/70 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5"
-                          )}
-                        >
-                          <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300",
-                            task.completed ? "bg-emerald-500 text-white shadow-md" : "bg-slate-100 text-slate-400 group-hover:bg-amber-100 group-hover:text-amber-600"
-                          )}>
-                            {task.completed ? <CheckCircle2 size={18} /> : <PlayCircle size={18} />}
-                          </div>
+                  <motion.div
+                    key={task.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: Math.min(i * 0.04, 0.5) }}
+                    className={cn(
+                      "flex items-center gap-4 p-4 rounded-lg border transition-all duration-200 cursor-pointer group bg-white",
+                      task.completed
+                        ? "border-l-4 border-l-green-500 border-t-green-100 border-r-green-100 border-b-green-100 bg-green-50/50 opacity-70"
+                        : "border-l-4 border-l-gray-200 border-t-gray-200 border-r-gray-200 border-b-gray-200 hover:border-l-orange-500 hover:shadow-md"
+                    )}
+                    onClick={() => handleToggleTask(task.id)}
+                  >
+                    <div className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                      task.completed ? "bg-green-500 text-white" : "bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-orange-600"
+                    )}>
+                      {task.completed ? <CheckCircle2 size={16} /> : <PlayCircle size={16} />}
+                    </div>
 
-                          <div className="flex-1 min-w-0">
-                            <p className={cn("font-bold text-sm leading-tight", task.completed ? "line-through text-slate-400" : "text-slate-800")}>
-                              {task.title}
-                            </p>
-                            <p className="text-[10px] text-slate-500 mt-0.5 font-medium">Hari {task.day} · {task.estimatedMinutes} menit</p>
-                          </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={cn("font-medium text-sm leading-tight", task.completed ? "line-through text-gray-400" : "text-gray-800")}>
+                        {task.title}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">Hari {task.day} · {task.estimatedMinutes} menit</p>
+                    </div>
 
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Badge className={cn(
-                              "text-[9px] font-bold px-2 py-0.5 border-0",
-                              task.completed
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-amber-100 text-amber-700"
-                            )}>
-                              +15 XP
-                            </Badge>
-                            {task.completed && <Star size={14} className="text-amber-500 fill-current" />}
-                          </div>
-                        </motion.div>
-                      </TooltipTrigger>
-                      <TooltipContent className="bg-white border-slate-200 text-slate-900 shadow-lg">
-                        <p className="font-bold text-xs">{task.completed ? 'Sudah selesai! 🎉' : 'Klik untuk menyelesaikan task ini'}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="badge-orange text-[9px]">
+                        <Star size={10} /> +15 XP
+                      </span>
+                    </div>
+                  </motion.div>
                 ))}
               </div>
 
-              {/* Completion celebration — landing page's dark statement card */}
+              {/* Completion */}
               {tasks.length > 0 && completedCount === tasks.length && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="mt-10 rounded-[2.5rem] bg-slate-900 p-12 relative overflow-hidden text-center"
+                  className="mt-10 bg-gray-900 rounded-xl p-10 text-center"
                 >
-                  <div className="absolute inset-0 opacity-20 pointer-events-none scale-150">
-                    <svg viewBox="0 0 100 100" fill="none" className="w-full h-full">
-                      <circle cx="50" cy="50" r="40" stroke="white" strokeWidth="0.5" strokeDasharray="2 4" />
-                      <circle cx="50" cy="50" r="30" stroke="white" strokeWidth="1" />
-                    </svg>
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
-                  </div>
-                  <div className="relative z-10">
-                    <Trophy size={56} className="text-amber-400 mx-auto mb-4" />
-                    <h3 className="font-black text-2xl text-white mb-2">Semua Task Selesai!</h3>
-                    <p className="inline-block bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent font-black italic text-lg">
-                      Kamu sudah menyelesaikan semua learning tasks untuk {career}.
-                    </p>
-                  </div>
+                  <Trophy size={48} className="text-orange-400 mx-auto mb-4" />
+                  <h3 className="font-bold text-2xl text-white mb-2">Semua Task Selesai!</h3>
+                  <p className="text-orange-400 font-medium text-lg">
+                    Kamu sudah menyelesaikan semua learning tasks untuk {career}.
+                  </p>
                 </motion.div>
               )}
             </div>
