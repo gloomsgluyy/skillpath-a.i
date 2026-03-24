@@ -24,12 +24,29 @@ export default function LearningJourney() {
   const [career, setCareer] = useState('');
   const [streak, setStreak] = useState(0);
 
+  const loadedRef = React.useRef(false);
+
   useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+
     async function load() {
       if (!currentUser?.uid) { setLoading(false); return; }
 
-      // Get current target career from localStorage or AI recommendation (user-scoped)
       const careerKey = `skillpath_career_${currentUser.uid}`;
+
+      // ALWAYS check Firestore first — load existing journey regardless of career name match
+      const existing = await getUserJourney(currentUser.uid);
+      if (existing && existing.tasks?.length > 0) {
+        localStorage.setItem(careerKey, existing.targetCareer);
+        setTasks(existing.tasks || []);
+        setCareer(existing.targetCareer || '');
+        setStreak(existing.streak || 0);
+        setLoading(false);
+        return;
+      }
+
+      // No journey saved — determine career and generate for the first time
       let targetCareer = localStorage.getItem(careerKey) || '';
       if (!targetCareer) {
         const rec = await getAIRecommendation(currentUser.uid);
@@ -37,15 +54,6 @@ export default function LearningJourney() {
         localStorage.setItem(careerKey, targetCareer);
       }
 
-      // Check if there's an existing journey that matches their CURRENT target career
-      const existing = await getUserJourney(currentUser.uid);
-      if (existing && existing.targetCareer === targetCareer) {
-        setTasks(existing.tasks || []);
-        setCareer(existing.targetCareer || '');
-        setStreak(existing.streak || 0);
-        setLoading(false);
-        return;
-      }
       setCareer(targetCareer);
       setGenerating(true);
 

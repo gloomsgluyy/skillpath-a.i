@@ -23,7 +23,12 @@ export default function ProfileDashboard() {
   const [isGeneratingCV, setIsGeneratingCV] = useState(false);
   const [cvData, setCvData] = useState<any>(null);
 
+  const loadedRef = React.useRef(false);
+
   useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+
     async function load() {
       if (!currentUser?.uid) { setLoading(false); return; }
       const [userStats, userProfile, aiRec] = await Promise.all([

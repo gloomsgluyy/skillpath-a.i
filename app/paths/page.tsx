@@ -35,41 +35,49 @@ export default function SkillPathsPage() {
   const [inputMsg, setInputMsg] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
 
+  const loadedRef = React.useRef(false);
+
   // Load skill path from Firestore or generate new one
   useEffect(() => {
+    if (loadedRef.current) return; // Prevent double-fire (React StrictMode)
+    loadedRef.current = true;
+
     async function load() {
       if (!currentUser?.uid) { setLoading(false); return; }
 
-      const careerParam = searchParams.get('career');
       const careerKey = `skillpath_career_${currentUser.uid}`;
+
+      // ALWAYS check Firestore first — it is the source of truth
+      const existingPath = await getSkillPath(currentUser.uid);
+      if (existingPath && existingPath.nodes?.length > 0) {
+        // Sync localStorage with what Firestore has
+        localStorage.setItem(careerKey, existingPath.targetCareer);
+        setCareer(existingPath.targetCareer);
+        setNodes(existingPath.nodes || []);
+        // Restore chat history
+        const savedChat = localStorage.getItem(`chat_${currentUser.uid}`);
+        if (savedChat) {
+          try { setMessages(JSON.parse(savedChat)); } catch {
+            setMessages([{ role: 'ai', content: `Selamat datang kembali! Roadmap ${existingPath.targetCareer}-mu siap. Klik node untuk tandai progress!` }]);
+          }
+        } else {
+          setMessages([{ role: 'ai', content: `Selamat datang kembali! Roadmap ${existingPath.targetCareer}-mu siap. Klik node untuk tandai progress!` }]);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // No path in Firestore — determine career and generate for the first time
+      const careerParam = searchParams.get('career');
       let targetCareer = careerParam || localStorage.getItem(careerKey) || '';
 
       if (!targetCareer) {
         const rec = await getAIRecommendation(currentUser.uid);
         if (rec) targetCareer = rec.careerTitle;
       }
-
-      if (!targetCareer) {
-        targetCareer = 'Full-Stack Developer';
-      }
+      if (!targetCareer) targetCareer = 'Full-Stack Developer';
 
       localStorage.setItem(careerKey, targetCareer);
-
-      const existingPath = await getSkillPath(currentUser.uid);
-      if (existingPath && existingPath.targetCareer === targetCareer) {
-        setCareer(existingPath.targetCareer);
-        setNodes(existingPath.nodes || []);
-        // Load saved chat messages or show welcome
-        const savedChat = localStorage.getItem(`chat_${currentUser.uid}`);
-        if (savedChat) {
-          try { setMessages(JSON.parse(savedChat)); } catch { setMessages([{ role: 'ai', content: `Selamat datang kembali! Ini adalah roadmap ${existingPath.targetCareer}-mu. Klik pada node untuk menandai progress.` }]); }
-        } else {
-          setMessages([{ role: 'ai', content: `Selamat datang kembali! Ini adalah roadmap ${existingPath.targetCareer}-mu. Klik pada node untuk menandai progress.` }]);
-        }
-        setLoading(false);
-        return;
-      }
-
       setCareer(targetCareer);
       setGenerating(true);
       setMessages([{ role: 'ai', content: `Hai! Saya sedang membuatkan roadmap belajar untuk menjadi **${targetCareer}**. Tunggu sebentar...` }]);
@@ -99,7 +107,7 @@ export default function SkillPathsPage() {
             y: n.coordinates?.y || n.y || 100 + i * 140,
           }));
           setNodes(pathNodes);
-          saveSkillPath(currentUser.uid, targetCareer, pathNodes).catch(console.warn);
+          await saveSkillPath(currentUser.uid, targetCareer, pathNodes);
           setMessages(prev => [...prev, { role: 'ai', content: `Roadmap ${targetCareer} sudah jadi! Ada ${pathNodes.length} tahapan yang perlu kamu kuasai. Mulai dari yang paling atas ya!` }]);
         }
       } catch (err) {
