@@ -260,10 +260,14 @@ export default function ExploreCareers() {
                                 ))}
                               </div>
 
-                              <Button 
-                                onClick={() => {
+                               <Button 
+                                onClick={async () => {
                                   setAiResult(opt);
                                   setAiOptions(null);
+                                  if (currentUser?.uid) {
+                                    // Save to profile so other pages know the intended career changed
+                                    await saveUserProfile(currentUser.uid, { targetCareer: opt.careerTitle });
+                                  }
                                 }}
                                 className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl"
                               >

@@ -47,6 +47,7 @@ export interface UserProfile {
   level: number;
   completedTaskCount: number;
   completedProjectCount: number;
+  targetCareer?: string;
 }
 
 export const saveUserProfile = async (uid: string, data: Partial<UserProfile>) => {
@@ -72,6 +73,7 @@ export const saveUserProfile = async (uid: string, data: Partial<UserProfile>) =
         lastLoginAt: serverTimestamp(),
       });
     }
+    invalidateCache(`user_${uid}`);
   } catch (e) {
     console.warn('saveUserProfile offline/error:', e);
   }

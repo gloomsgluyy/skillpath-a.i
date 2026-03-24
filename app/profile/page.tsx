@@ -133,28 +133,28 @@ export default function ProfileDashboard() {
                 <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.4) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
               </div>
 
-              <div className="px-8 pb-8 -mt-12 flex flex-col md:flex-row md:items-end gap-4 relative z-10">
+              <div className="px-8 pb-10 -mt-10 flex flex-col md:flex-row md:items-end gap-6 relative z-10">
                 {/* Avatar */}
-                <div className="w-24 h-24 rounded-[1.5rem] bg-white border-4 border-white p-0.5 shadow-2xl shrink-0">
+                <div className="w-28 h-28 rounded-[2rem] bg-white border-4 border-white p-1 shadow-2xl shrink-0 flex items-center justify-center">
                   {currentUser.photoURL ? (
-                    <img src={currentUser.photoURL} alt="" className="w-full h-full rounded-[1.2rem] object-cover" />
+                    <img src={currentUser.photoURL} alt="" className="w-full h-full rounded-[1.6rem] object-cover" />
                   ) : (
-                    <div className="w-full h-full rounded-[1.2rem] bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-3xl font-black text-white">
+                    <div className="w-full h-full rounded-[1.6rem] bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-4xl font-black text-white">
                       {displayName.charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>
 
                 {/* Name & career */}
-                <div className="flex-1 text-center md:text-left pt-2">
-                  <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{displayName}</h1>
-                  <div className="flex items-center gap-2 mt-1 justify-center md:justify-start flex-wrap">
-                    <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 font-black text-xs px-3 py-1 shadow-md">
-                      <Briefcase size={12} className="mr-1" />
-                      {rec?.careerTitle || (typeof window !== 'undefined' ? localStorage.getItem(`skillpath_career_${currentUser?.uid}`) : null) || 'Explorer'}
+                <div className="flex-1 text-center md:text-left pb-1">
+                  <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tighter mb-2">{displayName}</h1>
+                  <div className="flex items-center gap-3 mt-1 justify-center md:justify-start flex-wrap">
+                    <Badge className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white border-0 font-black text-xs px-4 py-1.5 shadow-lg shadow-orange-500/20">
+                      <Briefcase size={14} className="mr-1.5" />
+                      {profile?.targetCareer || rec?.careerTitle || 'Learning Explorer'}
                     </Badge>
-                    <Badge variant="outline" className="text-slate-600 border-slate-300 font-bold text-xs">
-                      Level {level} · {level >= 5 ? 'Expert' : level >= 3 ? 'Intermediate' : 'Beginner'}
+                    <Badge variant="outline" className="bg-white/50 backdrop-blur-sm text-slate-600 border-slate-200 font-bold text-xs px-3 py-1">
+                      Level {level} · {level >= 5 ? 'Senior' : level >= 3 ? 'Mid' : 'Junior'}
                     </Badge>
                   </div>
                 </div>
