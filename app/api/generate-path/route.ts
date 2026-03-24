@@ -49,22 +49,41 @@ export async function POST(req: Request) {
     }
 
     if (question) {
-      // Chat mode
+      // Chat mode — detect if user wants to change their roadmap/career
       const chatPrompt = `
-You are an expert AI Career Consultant guiding the user on their path to becoming a ${career}.
-The user asks: "${question}"
-Answer directly, concisely, and encouragingly in Indonesian.
-Do NOT use any emojis in your response. Use Markdown for formatting (e.g. bold, lists).
-Respond in valid JSON format:
-{ "answer": "your response here" }
+You are an expert AI Career Consultant. The user's current roadmap is for: "${career}".
+The user says: "${question}"
+
+IMPORTANT RULES:
+1. Your "answer" field MUST be a plain text string in Indonesian. Use Markdown formatting (bold, lists, etc.).
+2. NEVER put JSON objects, arrays, or code inside the "answer" field.
+3. Do NOT use any emojis.
+4. If the user is asking to CHANGE their career path or REGENERATE a new roadmap for a different career, set "shouldRegenerate" to true and "newCareer" to the career they want. Otherwise set "shouldRegenerate" to false.
+
+Respond ONLY in this exact JSON format:
+{
+  "answer": "Your helpful plain-text response here in Indonesian",
+  "shouldRegenerate": false,
+  "newCareer": ""
+}
 `;
       const chatCompletion = await groq.chat.completions.create({
-        messages: [{ role: 'system', content: 'You are an AI consultant. Output strict JSON. No emojis.' }, { role: 'user', content: chatPrompt }],
+        messages: [
+          { role: 'system', content: 'You are a career consultant AI. You MUST output valid JSON with "answer" as a plain Indonesian text string (never nested JSON). Also detect if user wants to change career. No emojis.' },
+          { role: 'user', content: chatPrompt }
+        ],
         model: 'llama-3.1-8b-instant',
         temperature: 0.7,
         response_format: { type: 'json_object' },
       });
-      return NextResponse.json(JSON.parse(chatCompletion.choices[0]?.message?.content || '{}'));
+      const chatResult = JSON.parse(chatCompletion.choices[0]?.message?.content || '{}');
+      // Ensure answer is always a string
+      const answer = typeof chatResult.answer === 'string' ? chatResult.answer : JSON.stringify(chatResult.answer || 'Maaf, saya tidak bisa memproses permintaan ini.');
+      return NextResponse.json({
+        answer,
+        shouldRegenerate: chatResult.shouldRegenerate === true,
+        newCareer: typeof chatResult.newCareer === 'string' ? chatResult.newCareer : '',
+      });
     }
 
     // Roadmap generation mode — Neural Roadmap format

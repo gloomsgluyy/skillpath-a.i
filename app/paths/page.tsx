@@ -154,8 +154,53 @@ export default function SkillPathsPage() {
       const data = await res.json();
 
       if (data.answer) {
-        setMessages(prev => [...prev, { role: 'ai', content: data.answer }]);
-      } else {
+        const answerText = typeof data.answer === 'string' ? data.answer : JSON.stringify(data.answer);
+        setMessages(prev => [...prev, { role: 'ai', content: answerText }]);
+      }
+
+      // If AI detected user wants to change career → regenerate roadmap
+      if (data.shouldRegenerate && data.newCareer) {
+        const newCareer = data.newCareer;
+        setMessages(prev => [...prev, { role: 'ai', content: `Baik! Saya akan membuatkan roadmap baru untuk **${newCareer}**. Tunggu sebentar...` }]);
+        setCareer(newCareer);
+        setGenerating(true);
+        localStorage.setItem('skillpath_target_career', newCareer);
+
+        try {
+          const regenRes = await fetch('/api/generate-path', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ career: newCareer })
+          });
+          const regenData = await regenRes.json();
+
+          if (regenData.nodes && Array.isArray(regenData.nodes)) {
+            const pathNodes: SkillPathNode[] = regenData.nodes.map((n: any, i: number) => ({
+              id: n.id || `node-${i}`,
+              title: n.title || n.label || `Step ${i + 1}`,
+              description: n.description || '',
+              estimatedHours: n.estimatedHours || 10,
+              duration: n.duration || '2 Minggu',
+              difficulty: n.difficulty || 'Menengah',
+              icon_type: n.icon_type || 'code',
+              prerequisites: n.prerequisites || [],
+              status: n.status || (i === 0 ? 'active' : 'locked'),
+              coordinates: n.coordinates || { x: 300 + (i % 3) * 180, y: 100 + Math.floor(i / 2) * 150 },
+              connections: n.connections || [],
+              x: n.coordinates?.x || n.x || 300,
+              y: n.coordinates?.y || n.y || 100 + i * 140,
+            }));
+            setNodes(pathNodes);
+            if (currentUser?.uid) {
+              saveSkillPath(currentUser.uid, newCareer, pathNodes).catch(console.warn);
+            }
+            setMessages(prev => [...prev, { role: 'ai', content: `Roadmap **${newCareer}** sudah jadi! Ada ${pathNodes.length} tahapan. Mulai dari yang paling atas!` }]);
+          }
+        } catch {
+          setMessages(prev => [...prev, { role: 'ai', content: 'Gagal membuat roadmap baru. Coba lagi nanti.' }]);
+        }
+        setGenerating(false);
+      } else if (!data.answer) {
         setMessages(prev => [...prev, { role: 'ai', content: 'Maaf, saya tidak bisa mendeteksi jawaban. Coba tanyakan lagi.' }]);
       }
     } catch {
@@ -231,7 +276,7 @@ export default function SkillPathsPage() {
               >
                 {msg.role === 'ai' ? (
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {msg.content}
+                    {typeof msg.content === 'string' ? msg.content : String(msg.content)}
                   </ReactMarkdown>
                 ) : (
                   msg.content
