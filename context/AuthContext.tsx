@@ -67,8 +67,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         pendidikan: onboardingData.pendidikan || '',
         archetype: onboardingData.archetype || '',
         roleInterests: onboardingData.roleInterests || [],
-      }).catch((err: any) => console.error('Firestore save error:', err));
+        }).catch((err: any) => console.error('Firestore save error:', err));
       
+    } catch (error) {
+      console.error("Error signing in with Email", error);
+      throw error;
+    }
+  };
   const signInWithNickname = async (nickname: string) => {
     // Generate deterministic virtual credentials based on the nickname
     const safeNick = nickname.toLowerCase().replace(/[^a-z0-9]/g, '');

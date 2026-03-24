@@ -368,6 +368,7 @@ export default function OnboardingModal() {
               </div>
 
               <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-1.5 tracking-tight leading-tight">Satu Langkah Lagi!</h3>
+              <p className="text-slate-500 text-xs sm:text-sm font-semibold leading-relaxed mb-5 max-w-xs">
                 Masukkan nama panggilanmu untuk memulai petualangan karir.
               </p>
 
