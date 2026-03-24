@@ -58,7 +58,13 @@ export default function SkillPathsPage() {
       if (existingPath && existingPath.targetCareer === targetCareer) {
         setCareer(existingPath.targetCareer);
         setNodes(existingPath.nodes || []);
-        setMessages([{ role: 'ai', content: `Selamat datang kembali! Ini adalah roadmap ${existingPath.targetCareer}-mu. Klik pada node untuk menandai progress. Tanya saya jika butuh bantuan!` }]);
+        // Load saved chat messages or show welcome
+        const savedChat = localStorage.getItem(`chat_${currentUser.uid}`);
+        if (savedChat) {
+          try { setMessages(JSON.parse(savedChat)); } catch { setMessages([{ role: 'ai', content: `Selamat datang kembali! Ini adalah roadmap ${existingPath.targetCareer}-mu. Klik pada node untuk menandai progress.` }]); }
+        } else {
+          setMessages([{ role: 'ai', content: `Selamat datang kembali! Ini adalah roadmap ${existingPath.targetCareer}-mu. Klik pada node untuk menandai progress.` }]);
+        }
         setLoading(false);
         return;
       }
@@ -209,7 +215,13 @@ export default function SkillPathsPage() {
     setChatLoading(false);
   };
 
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  // Auto-save chat messages to localStorage & scroll to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (currentUser?.uid && messages.length > 0) {
+      try { localStorage.setItem(`chat_${currentUser.uid}`, JSON.stringify(messages.slice(-50))); } catch {}
+    }
+  }, [messages, currentUser]);
 
   // Convert SkillPathNode[] to NeuralNodeData[]
   const neuralNodes: NeuralNodeData[] = nodes.map(n => ({

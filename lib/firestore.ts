@@ -1,22 +1,31 @@
 import { db } from './firebase';
 import { doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where, increment, serverTimestamp } from 'firebase/firestore';
 
-// ===================== MEMORY CACHE =====================
-const memCache = new Map<string, { data: any, exp: number }>();
+// ===================== PERSISTENT CACHE (localStorage) =====================
 const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
 
 function getCached<T>(key: string): T | null {
-  const item = memCache.get(key);
-  if (item && item.exp > Date.now()) return item.data as T;
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(`cache_${key}`);
+    if (!raw) return null;
+    const item = JSON.parse(raw);
+    if (item && item.exp > Date.now()) return item.data as T;
+    localStorage.removeItem(`cache_${key}`);
+  } catch {}
   return null;
 }
 
 function setCached(key: string, data: any) {
-  if (data) memCache.set(key, { data, exp: Date.now() + CACHE_TTL });
+  if (typeof window === 'undefined' || !data) return;
+  try {
+    localStorage.setItem(`cache_${key}`, JSON.stringify({ data, exp: Date.now() + CACHE_TTL }));
+  } catch {}
 }
 
 function invalidateCache(key: string) {
-  memCache.delete(key);
+  if (typeof window === 'undefined') return;
+  try { localStorage.removeItem(`cache_${key}`); } catch {}
 }
 
 // ===================== USER PROFILES =====================
@@ -369,10 +378,16 @@ export const saveProjectEvaluation = async (uid: string, project: Omit<ProjectEv
 
 export const getUserProjects = async (uid: string): Promise<ProjectEvaluation[]> => {
   if (!uid) return [];
+  const cacheKey = `projects_${uid}`;
+  const cached = getCached<ProjectEvaluation[]>(cacheKey);
+  if (cached) return cached;
+
   try {
     const q = query(collection(db, 'projects'), where('uid', '==', uid));
     const snap = await getDocs(q);
-    return snap.docs.map(d => d.data() as ProjectEvaluation);
+    const data = snap.docs.map(d => d.data() as ProjectEvaluation);
+    setCached(cacheKey, data);
+    return data;
   } catch (error) {
     console.warn('getUserProjects offline/error:', error);
     return [];
