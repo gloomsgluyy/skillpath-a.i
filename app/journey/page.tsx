@@ -34,10 +34,15 @@ export default function LearningJourney() {
       if (!currentUser?.uid) { setLoading(false); return; }
 
       const careerKey = `skillpath_career_${currentUser.uid}`;
+      const currentCareer = localStorage.getItem(careerKey) || '';
 
-      // ALWAYS check Firestore first — load existing journey regardless of career name match
+      // Check Firestore for existing journey
       const existing = await getUserJourney(currentUser.uid);
-      if (existing && existing.tasks?.length > 0) {
+
+      // If existing journey matches current career → load it directly
+      const careerChanged = currentCareer && existing?.targetCareer && currentCareer !== existing.targetCareer;
+
+      if (existing && existing.tasks?.length > 0 && !careerChanged) {
         localStorage.setItem(careerKey, existing.targetCareer);
         setTasks(existing.tasks || []);
         setCareer(existing.targetCareer || '');
@@ -46,8 +51,8 @@ export default function LearningJourney() {
         return;
       }
 
-      // No journey saved — determine career and generate for the first time
-      let targetCareer = localStorage.getItem(careerKey) || '';
+      // No journey saved or career changed → determine career and generate
+      let targetCareer = currentCareer || '';
       if (!targetCareer) {
         const rec = await getAIRecommendation(currentUser.uid);
         targetCareer = rec?.careerTitle || 'Full-Stack Developer';

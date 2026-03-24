@@ -126,20 +126,20 @@ export default function ProfileDashboard() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-[2.5rem] bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.04)] mb-8"
+              className="rounded-[2.5rem] bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.04)] mb-8 overflow-hidden"
             >
               {/* Banner gradient */}
-              <div className="h-28 bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 relative rounded-t-[2.5rem]">
+              <div className="h-32 bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 relative">
                 <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.4) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
               </div>
 
-              <div className="px-8 pb-8 pt-0 -mt-14 flex flex-col md:flex-row md:items-end gap-4">
+              <div className="px-8 pb-8 -mt-12 flex flex-col md:flex-row md:items-end gap-4 relative z-10">
                 {/* Avatar */}
-                <div className="w-28 h-28 rounded-[2rem] bg-white border-4 border-white p-1 shadow-2xl shrink-0">
+                <div className="w-24 h-24 rounded-[1.5rem] bg-white border-4 border-white p-0.5 shadow-2xl shrink-0">
                   {currentUser.photoURL ? (
-                    <img src={currentUser.photoURL} alt="" className="w-full h-full rounded-[1.5rem] object-cover" />
+                    <img src={currentUser.photoURL} alt="" className="w-full h-full rounded-[1.2rem] object-cover" />
                   ) : (
-                    <div className="w-full h-full rounded-[1.5rem] bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-4xl font-black text-white">
+                    <div className="w-full h-full rounded-[1.2rem] bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-3xl font-black text-white">
                       {displayName.charAt(0).toUpperCase()}
                     </div>
                   )}

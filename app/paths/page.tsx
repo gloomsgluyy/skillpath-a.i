@@ -35,22 +35,30 @@ export default function SkillPathsPage() {
   const [inputMsg, setInputMsg] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
 
-  const loadedRef = React.useRef(false);
+  const loadedCareerRef = React.useRef<string | null>(null);
 
   // Load skill path from Firestore or generate new one
   useEffect(() => {
-    if (loadedRef.current) return; // Prevent double-fire (React StrictMode)
-    loadedRef.current = true;
+    const careerParam = searchParams.get('career');
+    const loadKey = careerParam || '__default__';
+
+    // Prevent double-fire for the same career (React StrictMode)
+    if (loadedCareerRef.current === loadKey) return;
+    loadedCareerRef.current = loadKey;
 
     async function load() {
       if (!currentUser?.uid) { setLoading(false); return; }
 
       const careerKey = `skillpath_career_${currentUser.uid}`;
 
-      // ALWAYS check Firestore first — it is the source of truth
+      // Check Firestore for existing path
       const existingPath = await getSkillPath(currentUser.uid);
-      if (existingPath && existingPath.nodes?.length > 0) {
-        // Sync localStorage with what Firestore has
+
+      // If user came from explore with a specific career AND it differs from existing → must regenerate
+      const needsRegenForNewCareer = careerParam && existingPath?.targetCareer && careerParam !== existingPath.targetCareer;
+
+      if (existingPath && existingPath.nodes?.length > 0 && !needsRegenForNewCareer) {
+        // Load existing path from Firestore
         localStorage.setItem(careerKey, existingPath.targetCareer);
         setCareer(existingPath.targetCareer);
         setNodes(existingPath.nodes || []);
@@ -67,8 +75,7 @@ export default function SkillPathsPage() {
         return;
       }
 
-      // No path in Firestore — determine career and generate for the first time
-      const careerParam = searchParams.get('career');
+      // Need to generate: either no path exists or career changed
       let targetCareer = careerParam || localStorage.getItem(careerKey) || '';
 
       if (!targetCareer) {
@@ -118,7 +125,7 @@ export default function SkillPathsPage() {
     }
     load();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
+  }, [currentUser, searchParams]);
 
   const handleNodeClick = async (node: NeuralNodeData) => {
     if (!currentUser?.uid || node.status === 'locked') return;
