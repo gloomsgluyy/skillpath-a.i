@@ -4,10 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Bot, Send, Sparkles, CheckCircle2, Loader2, Map } from 'lucide-react';
+import { Bot, Send, Sparkles, Map } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -15,6 +13,8 @@ import { getSkillPath, saveSkillPath, updateSkillPathNode, getAIRecommendation, 
 import confetti from 'canvas-confetti';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { RoadmapCanvas } from '@/components/roadmap/RoadmapCanvas';
+import type { NeuralNodeData } from '@/components/roadmap/NeuralNode';
 
 interface ChatMessage {
   role: 'user' | 'ai';
@@ -40,7 +40,6 @@ export default function SkillPathsPage() {
     async function load() {
       if (!currentUser?.uid) { setLoading(false); return; }
 
-      // Get current target career from URL param, localStorage, or AI recommendation
       const careerParam = searchParams.get('career');
       let targetCareer = careerParam || localStorage.getItem('skillpath_target_career') || '';
 
@@ -50,12 +49,11 @@ export default function SkillPathsPage() {
       }
 
       if (!targetCareer) {
-        targetCareer = 'Full-Stack Developer'; // fallback
+        targetCareer = 'Full-Stack Developer';
       }
-      
+
       localStorage.setItem('skillpath_target_career', targetCareer);
 
-      // Check if there's an existing skill path that matches CURRENT target career
       const existingPath = await getSkillPath(currentUser.uid);
       if (existingPath && existingPath.targetCareer === targetCareer) {
         setCareer(existingPath.targetCareer);
@@ -79,14 +77,19 @@ export default function SkillPathsPage() {
 
         if (data.nodes && Array.isArray(data.nodes)) {
           const pathNodes: SkillPathNode[] = data.nodes.map((n: any, i: number) => ({
-            id: `node-${i}`,
-            title: n.title || `Step ${i + 1}`,
+            id: n.id || `node-${i}`,
+            title: n.title || n.label || `Step ${i + 1}`,
             description: n.description || '',
             estimatedHours: n.estimatedHours || 10,
+            duration: n.duration || '2 Minggu',
+            difficulty: n.difficulty || 'Menengah',
+            icon_type: n.icon_type || 'code',
             prerequisites: n.prerequisites || [],
-            status: i === 0 ? 'active' : 'locked',
-            x: 50 + (i % 3) * 200 + (Math.random() * 40 - 20),
-            y: 80 + Math.floor(i / 3) * 160,
+            status: n.status || (i === 0 ? 'active' : 'locked'),
+            coordinates: n.coordinates || { x: 300 + (i % 3) * 180, y: 100 + Math.floor(i / 2) * 150 },
+            connections: n.connections || [],
+            x: n.coordinates?.x || n.x || 300,
+            y: n.coordinates?.y || n.y || 100 + i * 140,
           }));
           setNodes(pathNodes);
           saveSkillPath(currentUser.uid, targetCareer, pathNodes).catch(console.warn);
@@ -102,7 +105,7 @@ export default function SkillPathsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
-  const handleNodeClick = async (node: SkillPathNode) => {
+  const handleNodeClick = async (node: NeuralNodeData) => {
     if (!currentUser?.uid || node.status === 'locked') return;
 
     if (node.status === 'active') {
@@ -110,7 +113,6 @@ export default function SkillPathsPage() {
         if (n.id === node.id) return { ...n, status: 'completed' as const };
         return n;
       });
-      // Unlock next locked node
       const nextLocked = updatedNodes.find(n => n.status === 'locked');
       if (nextLocked) nextLocked.status = 'active';
 
@@ -118,7 +120,7 @@ export default function SkillPathsPage() {
         particleCount: 80,
         spread: 60,
         origin: { y: 0.6 },
-        colors: ['#3b82f6', '#10b981', '#f59e0b']
+        colors: ['#f59e0b', '#10b981', '#3b82f6']
       });
 
       setNodes(updatedNodes);
@@ -126,7 +128,7 @@ export default function SkillPathsPage() {
       if (nextLocked) {
         saveSkillPath(currentUser.uid, career, updatedNodes).catch(console.warn);
       }
-      setMessages(prev => [...prev, { role: 'ai', content: `Hebat! Kamu sudah menyelesaikan "${node.title}". ${nextLocked ? `Selanjutnya: "${nextLocked.title}"` : 'Semua tahapan selesai!'}` }]);
+      setMessages(prev => [...prev, { role: 'ai', content: `Hebat! Kamu sudah menyelesaikan \"${node.title}\". ${nextLocked ? `Selanjutnya: \"${nextLocked.title}\"` : 'Semua tahapan selesai!'}` }]);
     }
   };
 
@@ -150,11 +152,11 @@ export default function SkillPathsPage() {
         body: JSON.stringify({ career, question: userMsg })
       });
       const data = await res.json();
-      
+
       if (data.answer) {
         setMessages(prev => [...prev, { role: 'ai', content: data.answer }]);
       } else {
-         setMessages(prev => [...prev, { role: 'ai', content: 'Maaf, saya tidak bisa mendeteksi jawaban. Coba tanyakan lagi.' }]);
+        setMessages(prev => [...prev, { role: 'ai', content: 'Maaf, saya tidak bisa mendeteksi jawaban. Coba tanyakan lagi.' }]);
       }
     } catch {
       setMessages(prev => [...prev, { role: 'ai', content: 'Koneksi error. Coba lagi.' }]);
@@ -163,6 +165,20 @@ export default function SkillPathsPage() {
   };
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  // Convert SkillPathNode[] to NeuralNodeData[]
+  const neuralNodes: NeuralNodeData[] = nodes.map(n => ({
+    id: n.id,
+    title: n.title,
+    description: n.description,
+    duration: n.duration || `${n.estimatedHours}h`,
+    difficulty: n.difficulty || 'Menengah',
+    status: n.status,
+    coordinates: n.coordinates || { x: n.x, y: n.y },
+    icon_type: n.icon_type || 'code',
+    connections: n.connections || [],
+    estimatedHours: n.estimatedHours,
+  }));
 
   if (!currentUser) {
     return (
@@ -254,13 +270,10 @@ export default function SkillPathsPage() {
           </div>
         </div>
 
-        {/* Right: Roadmap Canvas */}
-        <div className="hidden lg:flex flex-1 flex-col relative overflow-auto">
-          {/* Subtle dot grid — matches landing page's aesthetic */}
-          <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-
+        {/* Right: Neural Roadmap Canvas */}
+        <div className="hidden lg:flex flex-1 relative">
           {loading || generating ? (
-            <div className="relative p-8 min-h-full">
+            <div className="w-full p-8">
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <Skeleton className="h-8 w-48 mb-2 bg-slate-200/50 rounded-xl" />
@@ -268,77 +281,20 @@ export default function SkillPathsPage() {
                 </div>
                 <Skeleton className="h-6 w-16 rounded-full bg-slate-200/50" />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {[...Array(6)].map((_, i) => (
-                  <Skeleton key={i} className="h-40 rounded-[1.5rem] bg-slate-200/50" />
-                ))}
+              <div className="flex items-center justify-center h-[400px]">
+                <div className="text-center">
+                  <div className="w-12 h-12 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-sm font-bold text-slate-500">Membangun Neural Roadmap...</p>
+                  <p className="text-xs text-slate-400 mt-1">AI sedang merancang jalur belajarmu</p>
+                </div>
               </div>
             </div>
           ) : (
-            <div className="relative p-8 min-h-full">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Roadmap: {career}</h2>
-                  <p className="text-slate-500 text-sm font-medium mt-1">{nodes.filter(n => n.status === 'completed').length}/{nodes.length} tahapan selesai</p>
-                </div>
-                <Badge variant="outline" className="text-slate-600 border-slate-300 font-bold">
-                  {nodes.filter(n => n.status === 'completed').length}/{nodes.length}
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {nodes.map((node, i) => (
-                  <HoverCard key={node.id}>
-                    <HoverCardTrigger asChild>
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        transition={{ delay: i * 0.06, type: 'spring', bounce: 0.3 }}
-                        onClick={() => handleNodeClick(node)}
-                        className={cn(
-                          "p-5 rounded-[1.5rem] border cursor-pointer transition-all duration-500 group",
-                          node.status === 'completed'
-                            ? "bg-white border-emerald-200 shadow-[0_8px_30px_rgba(16,185,129,0.08)]"
-                            : node.status === 'active'
-                              ? "bg-white/50 backdrop-blur-2xl border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] hover:-translate-y-1"
-                              : "bg-slate-50/50 border-slate-200/50 opacity-60"
-                        )}
-                      >
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className={cn(
-                            "w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black",
-                            node.status === 'completed' ? "bg-emerald-500 text-white shadow-md" :
-                            node.status === 'active' ? "bg-slate-900 text-white shadow-lg" :
-                            "bg-slate-200 text-slate-400"
-                          )}>
-                            {node.status === 'completed' ? <CheckCircle2 size={16} /> : i + 1}
-                          </div>
-                          <h4 className={cn("font-black text-sm flex-1 tracking-tight", node.status === 'completed' ? "text-emerald-900" : node.status === 'active' ? "text-slate-900" : "text-slate-400")}>{node.title}</h4>
-                        </div>
-                        <p className={cn("text-xs line-clamp-2 leading-relaxed", node.status === 'active' ? "text-slate-600" : "text-slate-400")}>{node.description}</p>
-                        <div className="mt-4 flex items-center justify-between">
-                          <span className="text-[10px] text-slate-500 font-medium">{node.estimatedHours}h estimasi</span>
-                          <Badge className={cn(
-                            "text-[9px] font-bold px-2 py-0.5 border-0",
-                            node.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
-                            node.status === 'active' ? "bg-amber-100 text-amber-700" :
-                            "bg-slate-100 text-slate-500"
-                          )}>
-                            {node.status === 'completed' ? 'Selesai' : node.status === 'active' ? 'Aktif' : 'Terkunci'}
-                          </Badge>
-                        </div>
-                      </motion.div>
-                    </HoverCardTrigger>
-                    <HoverCardContent className="bg-white/95 backdrop-blur-xl border-white/70 text-slate-900 w-72 shadow-[0_20px_60px_rgba(0,0,0,0.1)] rounded-2xl p-5">
-                      <h4 className="font-black text-sm mb-2 text-slate-900">{node.title}</h4>
-                      <p className="text-slate-600 text-xs leading-relaxed">{node.description}</p>
-                      <p className="text-slate-500 text-xs mt-2 font-medium">Estimasi: {node.estimatedHours} jam</p>
-                      {node.status === 'active' && <p className="text-amber-600 text-xs mt-1 font-bold">Klik untuk menyelesaikan!</p>}
-                    </HoverCardContent>
-                  </HoverCard>
-                ))}
-              </div>
-            </div>
+            <RoadmapCanvas
+              nodes={neuralNodes}
+              career={career}
+              onNodeClick={handleNodeClick}
+            />
           )}
         </div>
       </div>

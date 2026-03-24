@@ -194,6 +194,12 @@ export interface SkillPathNode {
   status: 'locked' | 'active' | 'completed';
   x: number;
   y: number;
+  // Neural Roadmap fields
+  coordinates: { x: number; y: number };
+  icon_type: string;
+  difficulty: string;
+  duration: string;
+  connections: string[];
 }
 
 export const saveSkillPath = async (uid: string, career: string, nodes: SkillPathNode[]) => {
