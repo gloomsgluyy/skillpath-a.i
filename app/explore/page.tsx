@@ -137,7 +137,7 @@ export default function ExploreCareers() {
   // Save AI result to Firestore once we have BOTH the result and the user ID
   useEffect(() => {
     if (aiResult && currentUser?.uid) {
-      localStorage.setItem('skillpath_target_career', aiResult.careerTitle);
+      localStorage.setItem(`skillpath_career_${currentUser.uid}`, aiResult.careerTitle);
       // Check if it's already saved to prevent infinite writes
       getAIRecommendation(currentUser.uid).then(saved => {
         if (!saved || saved.careerTitle !== aiResult.careerTitle) {

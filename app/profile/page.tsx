@@ -133,7 +133,7 @@ export default function ProfileDashboard() {
                   <div className="flex items-center gap-2 mt-1 justify-center md:justify-start flex-wrap">
                     <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 font-black text-xs px-3 py-1 shadow-md">
                       <Briefcase size={12} className="mr-1" />
-                      {typeof window !== 'undefined' ? localStorage.getItem('skillpath_target_career') || rec?.careerTitle || 'Explorer' : rec?.careerTitle || 'Explorer'}
+                      {typeof window !== 'undefined' ? localStorage.getItem(`skillpath_career_${rec?.uid || ''}`) || rec?.careerTitle || 'Explorer' : rec?.careerTitle || 'Explorer'}
                     </Badge>
                     <Badge variant="outline" className="text-slate-600 border-slate-300 font-bold text-xs">
                       Level {level} · {level >= 5 ? 'Expert' : level >= 3 ? 'Intermediate' : 'Beginner'}

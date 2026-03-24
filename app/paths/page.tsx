@@ -41,7 +41,8 @@ export default function SkillPathsPage() {
       if (!currentUser?.uid) { setLoading(false); return; }
 
       const careerParam = searchParams.get('career');
-      let targetCareer = careerParam || localStorage.getItem('skillpath_target_career') || '';
+      const careerKey = `skillpath_career_${currentUser.uid}`;
+      let targetCareer = careerParam || localStorage.getItem(careerKey) || '';
 
       if (!targetCareer) {
         const rec = await getAIRecommendation(currentUser.uid);
@@ -52,7 +53,7 @@ export default function SkillPathsPage() {
         targetCareer = 'Full-Stack Developer';
       }
 
-      localStorage.setItem('skillpath_target_career', targetCareer);
+      localStorage.setItem(careerKey, targetCareer);
 
       const existingPath = await getSkillPath(currentUser.uid);
       if (existingPath && existingPath.targetCareer === targetCareer) {
@@ -170,7 +171,7 @@ export default function SkillPathsPage() {
         setMessages(prev => [...prev, { role: 'ai', content: `Baik! Saya akan membuatkan roadmap baru untuk **${newCareer}**. Tunggu sebentar...` }]);
         setCareer(newCareer);
         setGenerating(true);
-        localStorage.setItem('skillpath_target_career', newCareer);
+        localStorage.setItem(`skillpath_career_${currentUser?.uid}`, newCareer);
 
         try {
           const regenRes = await fetch('/api/generate-path', {

@@ -28,12 +28,13 @@ export default function LearningJourney() {
     async function load() {
       if (!currentUser?.uid) { setLoading(false); return; }
 
-      // Get current target career from localStorage or AI recommendation
-      let targetCareer = localStorage.getItem('skillpath_target_career') || '';
+      // Get current target career from localStorage or AI recommendation (user-scoped)
+      const careerKey = `skillpath_career_${currentUser.uid}`;
+      let targetCareer = localStorage.getItem(careerKey) || '';
       if (!targetCareer) {
         const rec = await getAIRecommendation(currentUser.uid);
         targetCareer = rec?.careerTitle || 'Full-Stack Developer';
-        localStorage.setItem('skillpath_target_career', targetCareer);
+        localStorage.setItem(careerKey, targetCareer);
       }
 
       // Check if there's an existing journey that matches their CURRENT target career
