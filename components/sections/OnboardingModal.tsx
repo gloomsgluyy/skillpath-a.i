@@ -42,7 +42,7 @@ const ROLE_OPTIONS = [
 ];
 
 export default function OnboardingModal() {
-  const { signInWithEmail, currentUser } = useAuth();
+  const { signInWithNickname, currentUser } = useAuth();
   const router = useRouter();
   
   const [data, setData] = useState<OnboardingState>({
@@ -99,9 +99,9 @@ export default function OnboardingModal() {
         displayName: data.displayName,
       }));
 
-      // If not logged in, login or register
+      // If not logged in, login or register with nickname
       if (!currentUser) {
-        await signInWithEmail(data.email, data.pass, data.displayName);
+        await signInWithNickname(data.displayName);
       }
       
       closeModal();
@@ -368,8 +368,7 @@ export default function OnboardingModal() {
               </div>
 
               <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-1.5 tracking-tight leading-tight">Satu Langkah Lagi!</h3>
-              <p className="text-slate-500 text-xs sm:text-sm font-semibold leading-relaxed mb-5 max-w-xs">
-                Masukkan nama, email, dan password untuk membuat akun / login.
+                Masukkan nama panggilanmu untuk memulai petualangan karir.
               </p>
 
               {/* Display Name Input */}
@@ -382,41 +381,26 @@ export default function OnboardingModal() {
                     type="text"
                     value={data.displayName}
                     onChange={(e) => setData(p => ({ ...p, displayName: e.target.value }))}
-                    placeholder="Nama panggilanmu"
-                    className="w-full pl-10 pr-4 py-3.5 rounded-xl bg-slate-50 border-2 border-slate-100 focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all font-bold text-slate-800 text-sm text-center mb-2"
-                  />
-                  <input 
-                    type="email"
-                    value={data.email}
-                    onChange={(e) => setData(p => ({ ...p, email: e.target.value }))}
-                    placeholder="Email (Testing)"
-                    className="w-full pl-10 pr-4 py-3.5 rounded-xl bg-slate-50 border-2 border-slate-100 focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all font-bold text-slate-800 text-sm text-center mb-2"
-                  />
-                  <input 
-                    type="password"
-                    value={data.pass}
-                    onChange={(e) => setData(p => ({ ...p, pass: e.target.value }))}
-                    placeholder="Password"
-                    className="w-full pl-10 pr-4 py-3.5 rounded-xl bg-slate-50 border-2 border-slate-100 focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all font-bold text-slate-800 text-sm text-center"
+                    placeholder="Contoh: Andi, Budi, atau Jessi"
+                    className="w-full px-4 py-4 rounded-xl bg-slate-50 border-2 border-slate-100 focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all font-black text-slate-800 text-lg text-center shadow-inner"
                   />
                 </div>
               </div>
 
-              <Button 
-                 onClick={handleLogin}
-                 disabled={isSubmitting || !data.displayName.trim() || !data.email.trim() || !data.pass.trim()}
-                 variant="outline"
-                 className="w-full max-w-sm py-5 sm:py-6 rounded-xl sm:rounded-2xl text-sm sm:text-base font-black border-2 border-slate-100 hover:bg-white hover:border-amber-500 hover:shadow-xl transition-all flex items-center justify-center gap-3 bg-white disabled:opacity-50"
-              >
+              <button 
+                  onClick={handleLogin}
+                  disabled={isSubmitting || !data.displayName.trim()}
+                  className="w-full max-w-sm py-6 rounded-2xl text-base font-black bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-xl shadow-amber-500/20 text-white disabled:opacity-50 transition-all active:scale-95"
+               >
                 {isSubmitting ? (
                    <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-[3px] border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
                       <span className="text-amber-600 text-sm">Memproses...</span>
                    </div>
                 ) : (
-                   <span className="text-slate-800 text-sm">Masuk / Daftar dengan Email</span>
-                )}
-              </Button>
+                    <span className="text-white">🚀 Selesai & Lihat Karirku</span>
+                 )}
+               </button>
             </motion.div>
           )}
         </AnimatePresence>

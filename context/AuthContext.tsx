@@ -9,6 +9,7 @@ interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   signInWithEmail: (email: string, pass: string, name?: string) => Promise<void>;
+  signInWithNickname: (nickname: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -68,10 +69,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         roleInterests: onboardingData.roleInterests || [],
       }).catch((err: any) => console.error('Firestore save error:', err));
       
-    } catch (error) {
-      console.error("Error signing in with Email", error);
-      throw error;
-    }
+  const signInWithNickname = async (nickname: string) => {
+    // Generate deterministic virtual credentials based on the nickname
+    const safeNick = nickname.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const virtualEmail = `${safeNick}@tester.skillpath.ai`;
+    // Consistent virtual password for the testing session
+    const virtualPass = `test_pass_${safeNick}`;
+    
+    return signInWithEmail(virtualEmail, virtualPass, nickname);
   };
 
   const logout = () => signOut(auth);
@@ -80,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     currentUser,
     loading,
     signInWithEmail,
+    signInWithNickname,
     logout
   };
 
