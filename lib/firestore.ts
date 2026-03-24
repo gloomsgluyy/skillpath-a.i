@@ -29,6 +29,21 @@ function invalidateCache(key: string) {
   try { localStorage.removeItem(`cache_${key}`); } catch {}
 }
 
+// Retry helper for Firestore cold-start offline errors
+async function getDocWithRetry(ref: any, retries = 2): Promise<any> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await getDoc(ref);
+    } catch (err: any) {
+      if (i < retries && err?.message?.includes('offline')) {
+        await new Promise(r => setTimeout(r, 1000));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 // ===================== USER PROFILES =====================
 
 export interface UserProfile {
@@ -47,7 +62,6 @@ export interface UserProfile {
   level: number;
   completedTaskCount: number;
   completedProjectCount: number;
-  targetCareer?: string;
 }
 
 export const saveUserProfile = async (uid: string, data: Partial<UserProfile>) => {
@@ -73,7 +87,6 @@ export const saveUserProfile = async (uid: string, data: Partial<UserProfile>) =
         lastLoginAt: serverTimestamp(),
       });
     }
-    invalidateCache(`user_${uid}`);
   } catch (e) {
     console.warn('saveUserProfile offline/error:', e);
   }
@@ -87,7 +100,7 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 
   try {
     const userRef = doc(db, 'users', uid);
-    const snap = await getDoc(userRef);
+    const snap = await getDocWithRetry(userRef);
     const data = snap.exists() ? (snap.data() as UserProfile) : null;
     setCached(cacheKey, data);
     return data;
@@ -141,7 +154,7 @@ export const getAIRecommendation = async (uid: string): Promise<AIRecommendation
 
   try {
     const ref = doc(db, 'recommendations', uid);
-    const snap = await getDoc(ref);
+    const snap = await getDocWithRetry(ref);
     const data = snap.exists() ? (snap.data() as AIRecommendation) : null;
     setCached(cacheKey, data);
     return data;
@@ -241,7 +254,7 @@ export const getSkillPath = async (uid: string) => {
 
   try {
     const ref = doc(db, 'skillpaths', uid);
-    const snap = await getDoc(ref);
+    const snap = await getDocWithRetry(ref);
     const data = snap.exists() ? snap.data() : null;
     setCached(cacheKey, data);
     return data;
@@ -307,7 +320,7 @@ export const getUserJourney = async (uid: string) => {
 
   try {
     const ref = doc(db, 'journeys', uid);
-    const snap = await getDoc(ref);
+    const snap = await getDocWithRetry(ref);
     const data = snap.exists() ? snap.data() : null;
     setCached(cacheKey, data);
     return data;

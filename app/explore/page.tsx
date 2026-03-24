@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { Search, Brain, Code, Server, Palette, Sparkles, Network, Database, ShieldAlert, Cpu, ChartBar, LayoutTemplate, Briefcase, Gamepad2, Shield, Zap, Globe, Laptop, Heart, GraduationCap, ShoppingCart, Film, ChevronDown, Bot, ArrowUp } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { CAREERS, CATEGORIES, computeMatchScore, searchCareers, type Career } from '@/lib/careers-database';
-import { saveAIRecommendation, getAIRecommendation } from '@/lib/firestore';
+import { saveAIRecommendation, getAIRecommendation, saveUserProfile } from '@/lib/firestore';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   "Kreatif & Desain": <Palette className="w-8 h-8 text-orange-500" />,
@@ -260,13 +260,15 @@ export default function ExploreCareers() {
                                 ))}
                               </div>
 
-                               <Button 
+                              <Button 
                                 onClick={async () => {
                                   setAiResult(opt);
                                   setAiOptions(null);
                                   if (currentUser?.uid) {
-                                    // Save to profile so other pages know the intended career changed
-                                    await saveUserProfile(currentUser.uid, { targetCareer: opt.careerTitle });
+                                    // Save career to localStorage so paths/journey pick it up
+                                    localStorage.setItem(`skillpath_career_${currentUser.uid}`, opt.careerTitle);
+                                    // Also save to user profile in Firestore
+                                    saveUserProfile(currentUser.uid, { targetCareer: opt.careerTitle } as any).catch(console.warn);
                                   }
                                 }}
                                 className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl"
