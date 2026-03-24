@@ -51,11 +51,16 @@ export default function SkillPathsPage() {
 
       const careerKey = `skillpath_career_${currentUser.uid}`;
 
-      // Check Firestore for existing path
+      // 1. Determine the target career from ALL available sources (sync first)
+      const careerFromUrl = careerParam || '';
+      const careerFromStorage = localStorage.getItem(careerKey) || '';
+
+      // 2. Try Firestore for existing path
       const existingPath = await getSkillPath(currentUser.uid);
 
-      // If user came from explore with a specific career AND it differs from existing → must regenerate
-      const needsRegenForNewCareer = careerParam && existingPath?.targetCareer && careerParam !== existingPath.targetCareer;
+      // 3. If user specified a new career (URL or localStorage) that differs from Firestore → regenerate
+      const intendedCareer = careerFromUrl || careerFromStorage;
+      const needsRegenForNewCareer = intendedCareer && existingPath?.targetCareer && intendedCareer !== existingPath.targetCareer;
 
       if (existingPath && existingPath.nodes?.length > 0 && !needsRegenForNewCareer) {
         // Load existing path from Firestore
@@ -75,10 +80,12 @@ export default function SkillPathsPage() {
         return;
       }
 
-      // Need to generate: either no path exists or career changed
-      let targetCareer = careerParam || localStorage.getItem(careerKey) || '';
+      // 4. Need to generate — determine career from best available source
+      //    Priority: URL param > localStorage > Firestore AI rec > default
+      let targetCareer = careerFromUrl || careerFromStorage;
 
       if (!targetCareer) {
+        // Last resort: check Firestore AI recommendation
         const rec = await getAIRecommendation(currentUser.uid);
         if (rec) targetCareer = rec.careerTitle;
       }
