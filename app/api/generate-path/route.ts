@@ -49,22 +49,28 @@ export async function POST(req: Request) {
     }
 
     if (question) {
-      // Chat mode — detect if user wants to change their roadmap/career
+      // Chat mode — detect if user wants to change/rebuild their roadmap
       const chatPrompt = `
 You are an expert AI Career Consultant. The user's current roadmap is for: "${career}".
 The user says: "${question}"
 
 IMPORTANT RULES:
 1. Your "answer" field MUST be a plain text string in Indonesian. Use Markdown formatting (bold, lists, etc.).
-2. NEVER put JSON objects, arrays, or code inside the "answer" field.
+2. NEVER put JSON objects, arrays, or code structures inside the "answer" field. Only human-readable text.
 3. Do NOT use any emojis.
-4. If the user is asking to CHANGE their career path or REGENERATE a new roadmap for a different career, set "shouldRegenerate" to true and "newCareer" to the career they want. Otherwise set "shouldRegenerate" to false.
+4. CRITICAL: Detect if user wants to CHANGE career, BUILD a new roadmap, or REGENERATE/REBUILD/UPDATE the roadmap.
+   - Examples that MUST trigger shouldRegenerate=true:
+     "buatkan roadmap", "ubah roadmap", "ganti ke frontend", "tolong ubah", "buat ulang",
+     "saya ingin menjadi X", "ubah ke X", "ganti karir", "buat road map baru",
+     "regenerate", "rebuild", "update roadmap"
+   - If user wants to KEEP the same career but rebuild, set newCareer to "${career}"
+   - If user mentions a DIFFERENT career, set newCareer to that career name
 
-Respond ONLY in this exact JSON format:
+Respond ONLY in this JSON:
 {
-  "answer": "Your helpful plain-text response here in Indonesian",
-  "shouldRegenerate": false,
-  "newCareer": ""
+  "answer": "plain text response in Indonesian",
+  "shouldRegenerate": true or false,
+  "newCareer": "career name or empty string"
 }
 `;
       const chatCompletion = await groq.chat.completions.create({
@@ -79,10 +85,24 @@ Respond ONLY in this exact JSON format:
       const chatResult = JSON.parse(chatCompletion.choices[0]?.message?.content || '{}');
       // Ensure answer is always a string
       const answer = typeof chatResult.answer === 'string' ? chatResult.answer : JSON.stringify(chatResult.answer || 'Maaf, saya tidak bisa memproses permintaan ini.');
+      
+      // Client-side fallback: detect regeneration keywords if AI missed them
+      const lowerQ = question.toLowerCase();
+      const regenKeywords = ['buatkan roadmap', 'buat roadmap', 'ubah roadmap', 'ganti roadmap', 'buat ulang', 'rebuild', 'regenerate', 'update roadmap', 'buat road map', 'ubah road map', 'ganti karir', 'ubah ke ', 'ganti ke ', 'saya ingin menjadi', 'tolong ubah'];
+      const keywordMatch = regenKeywords.some(kw => lowerQ.includes(kw));
+      const aiSaysRegen = chatResult.shouldRegenerate === true;
+      const shouldRegenerate = aiSaysRegen || keywordMatch;
+      
+      // Extract career from newCareer or fallback to current
+      let newCareer = typeof chatResult.newCareer === 'string' && chatResult.newCareer.trim() ? chatResult.newCareer.trim() : '';
+      if (shouldRegenerate && !newCareer) {
+        newCareer = career; // rebuild same career if no new one specified
+      }
+
       return NextResponse.json({
         answer,
-        shouldRegenerate: chatResult.shouldRegenerate === true,
-        newCareer: typeof chatResult.newCareer === 'string' ? chatResult.newCareer : '',
+        shouldRegenerate,
+        newCareer,
       });
     }
 
