@@ -47,12 +47,14 @@ export default function ProfileDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: profile?.displayName || currentUser.displayName,
-          career: rec?.careerTitle || '',
-          skills: rec?.skills || [],
-          points: stats?.points || 0,
-          projectCount: stats?.projectCount || 0,
-          completedTasks: stats?.completedTasks || 0,
+          profile: {
+            displayName: profile?.displayName || currentUser.displayName,
+            pendidikan: profile?.pendidikan || '',
+            archetype: profile?.archetype || '',
+            primaryField: rec?.careerTitle || '',
+          },
+          radarStats: Object.fromEntries((rec?.skills || []).map((s: string, i: number) => [s, Math.max(40, 90 - i * 8)])),
+          projects: [],
         })
       });
       const data = await res.json();
@@ -61,6 +63,17 @@ export default function ProfileDashboard() {
       console.error('CV generation error:', err);
     }
     setIsGeneratingCV(false);
+  };
+
+  const handleDownloadCV = () => {
+    if (!cvData?.markdown) return;
+    const blob = new Blob([cvData.markdown], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `CV_${profile?.displayName || 'resume'}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (!currentUser) {
@@ -133,7 +146,7 @@ export default function ProfileDashboard() {
                   <div className="flex items-center gap-2 mt-1 justify-center md:justify-start flex-wrap">
                     <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 font-black text-xs px-3 py-1 shadow-md">
                       <Briefcase size={12} className="mr-1" />
-                      {typeof window !== 'undefined' ? localStorage.getItem(`skillpath_career_${rec?.uid || ''}`) || rec?.careerTitle || 'Explorer' : rec?.careerTitle || 'Explorer'}
+                      {rec?.careerTitle || (typeof window !== 'undefined' ? localStorage.getItem(`skillpath_career_${currentUser?.uid}`) : null) || 'Explorer'}
                     </Badge>
                     <Badge variant="outline" className="text-slate-600 border-slate-300 font-bold text-xs">
                       Level {level} · {level >= 5 ? 'Expert' : level >= 3 ? 'Intermediate' : 'Beginner'}
@@ -228,8 +241,8 @@ export default function ProfileDashboard() {
                         <div className="text-sm font-bold text-emerald-800">CV Siap!</div>
                       </div>
                       <p className="text-xs text-slate-600">Role: <span className="font-black text-slate-900">{cvData.recommendedRole || rec?.careerTitle}</span></p>
-                      <Button className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black uppercase tracking-widest text-xs shadow-lg hover:shadow-xl transition-all">
-                        <Download size={16} className="mr-2" /> Download PDF
+                      <Button onClick={handleDownloadCV} className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black uppercase tracking-widest text-xs shadow-lg hover:shadow-xl transition-all">
+                        <Download size={16} className="mr-2" /> Download CV
                       </Button>
                     </motion.div>
                   )}
