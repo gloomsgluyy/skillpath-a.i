@@ -1,22 +1,47 @@
 import { db } from './firebase';
 import { doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where, increment, serverTimestamp } from 'firebase/firestore';
 
-// ===================== MEMORY CACHE =====================
-const memCache = new Map<string, { data: any, exp: number }>();
-const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+// ===================== PERSISTENT CACHE (localStorage) =====================
+const CACHE_TTL = 1000 * 60 * 10; // 10 minutes (safe because we invalidate on writes)
 
 function getCached<T>(key: string): T | null {
-  const item = memCache.get(key);
-  if (item && item.exp > Date.now()) return item.data as T;
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(`cache_${key}`);
+    if (!raw) return null;
+    const item = JSON.parse(raw);
+    if (item && item.exp > Date.now() && item.data != null) return item.data as T;
+    localStorage.removeItem(`cache_${key}`);
+  } catch {}
   return null;
 }
 
 function setCached(key: string, data: any) {
-  if (data) memCache.set(key, { data, exp: Date.now() + CACHE_TTL });
+  // CRITICAL: Never cache null/undefined — it causes 'cache poisoning'
+  if (typeof window === 'undefined' || data == null) return;
+  try {
+    localStorage.setItem(`cache_${key}`, JSON.stringify({ data, exp: Date.now() + CACHE_TTL }));
+  } catch {}
 }
 
 function invalidateCache(key: string) {
-  memCache.delete(key);
+  if (typeof window === 'undefined') return;
+  try { localStorage.removeItem(`cache_${key}`); } catch {}
+}
+
+// Retry helper for Firestore cold-start offline errors
+async function getDocWithRetry(ref: any, retries = 2): Promise<any> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await getDoc(ref);
+    } catch (err: any) {
+      if (i < retries && err?.message?.includes('offline')) {
+        await new Promise(r => setTimeout(r, 1000));
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 // ===================== USER PROFILES =====================
@@ -75,7 +100,7 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
 
   try {
     const userRef = doc(db, 'users', uid);
-    const snap = await getDoc(userRef);
+    const snap = await getDocWithRetry(userRef);
     const data = snap.exists() ? (snap.data() as UserProfile) : null;
     setCached(cacheKey, data);
     return data;
@@ -115,6 +140,7 @@ export const saveAIRecommendation = async (uid: string, result: Omit<AIRecommend
       ...result,
       savedAt: serverTimestamp(),
     });
+    invalidateCache(`ai_rec_${uid}`);
   } catch (e) {
     console.warn('saveAIRecommendation error:', e);
   }
@@ -128,7 +154,7 @@ export const getAIRecommendation = async (uid: string): Promise<AIRecommendation
 
   try {
     const ref = doc(db, 'recommendations', uid);
-    const snap = await getDoc(ref);
+    const snap = await getDocWithRetry(ref);
     const data = snap.exists() ? (snap.data() as AIRecommendation) : null;
     setCached(cacheKey, data);
     return data;
@@ -194,6 +220,12 @@ export interface SkillPathNode {
   status: 'locked' | 'active' | 'completed';
   x: number;
   y: number;
+  // Neural Roadmap fields
+  coordinates: { x: number; y: number };
+  icon_type: string;
+  difficulty: string;
+  duration: string;
+  connections: string[];
 }
 
 export const saveSkillPath = async (uid: string, career: string, nodes: SkillPathNode[]) => {
@@ -207,6 +239,8 @@ export const saveSkillPath = async (uid: string, career: string, nodes: SkillPat
       createdAt: serverTimestamp(),
       lastUpdated: serverTimestamp(),
     });
+    // Invalidate cache so next read gets fresh data
+    invalidateCache(`skillpath_${uid}`);
   } catch (e) {
     console.warn('saveSkillPath error:', e);
   }
@@ -220,7 +254,7 @@ export const getSkillPath = async (uid: string) => {
 
   try {
     const ref = doc(db, 'skillpaths', uid);
-    const snap = await getDoc(ref);
+    const snap = await getDocWithRetry(ref);
     const data = snap.exists() ? snap.data() : null;
     setCached(cacheKey, data);
     return data;
@@ -240,6 +274,7 @@ export const updateSkillPathNode = async (uid: string, nodeId: string, status: '
     const data = snap.data();
     const nodes = (data.nodes || []).map((n: any) => n.id === nodeId ? { ...n, status } : n);
     await updateDoc(ref, { nodes, lastUpdated: serverTimestamp() });
+    invalidateCache(`skillpath_${uid}`);
     if (status === 'completed') await incrementUserPoints(uid, 50);
   } catch (error) {
     console.warn('updateSkillPathNode offline/error:', error);
@@ -271,6 +306,7 @@ export const saveUserJourney = async (uid: string, career: string, tasks: Journe
       createdAt: serverTimestamp(),
       lastUpdated: serverTimestamp(),
     });
+    invalidateCache(`journey_${uid}`);
   } catch (e) {
     console.warn('saveUserJourney error:', e);
   }
@@ -284,7 +320,7 @@ export const getUserJourney = async (uid: string) => {
 
   try {
     const ref = doc(db, 'journeys', uid);
-    const snap = await getDoc(ref);
+    const snap = await getDocWithRetry(ref);
     const data = snap.exists() ? snap.data() : null;
     setCached(cacheKey, data);
     return data;
@@ -321,11 +357,13 @@ export const markTaskCompleted = async (uid: string, taskId: string) => {
       lastCompletedDate: today,
       lastUpdated: serverTimestamp(),
     });
+    invalidateCache(`journey_${uid}`);
     await incrementUserPoints(uid, 15);
 
     // Update completed task count on profile
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, { completedTaskCount: increment(1) }).catch(() => {});
+    invalidateCache(`user_${uid}`);
   } catch (error) {
     console.warn('markTaskCompleted offline/error:', error);
   }
@@ -352,10 +390,12 @@ export const saveProjectEvaluation = async (uid: string, project: Omit<ProjectEv
       ...project,
       submittedAt: serverTimestamp(),
     });
+    invalidateCache(`projects_${uid}`);
     await incrementUserPoints(uid, 30);
 
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, { completedProjectCount: increment(1) }).catch(() => {});
+    invalidateCache(`user_${uid}`);
   } catch (e) {
     console.warn('saveProjectEvaluation error:', e);
   }
@@ -363,10 +403,16 @@ export const saveProjectEvaluation = async (uid: string, project: Omit<ProjectEv
 
 export const getUserProjects = async (uid: string): Promise<ProjectEvaluation[]> => {
   if (!uid) return [];
+  const cacheKey = `projects_${uid}`;
+  const cached = getCached<ProjectEvaluation[]>(cacheKey);
+  if (cached) return cached;
+
   try {
     const q = query(collection(db, 'projects'), where('uid', '==', uid));
     const snap = await getDocs(q);
-    return snap.docs.map(d => d.data() as ProjectEvaluation);
+    const data = snap.docs.map(d => d.data() as ProjectEvaluation);
+    setCached(cacheKey, data);
+    return data;
   } catch (error) {
     console.warn('getUserProjects offline/error:', error);
     return [];

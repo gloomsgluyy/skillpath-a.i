@@ -247,7 +247,7 @@ export default function ProjectsPage() {
 
           <div className="p-8 border-t border-slate-100 bg-white">
             <Button onClick={handleSubmitProject} disabled={submitting || !projectTitle.trim()} className="w-full h-14 glow-pill-primary font-black uppercase tracking-widest text-sm">
-              {submitting ? <><Loader2 size={16} className="animate-spin mr-2" /> AI Mengevaluasi...</> : '🤖 Submit & Evaluasi'}
+              {submitting ? <><Loader2 size={16} className="animate-spin mr-2" /> AI Mengevaluasi...</> : 'Submit & Evaluasi'}
             </Button>
           </div>
         </SheetContent>

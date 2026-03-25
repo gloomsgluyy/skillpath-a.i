@@ -23,7 +23,12 @@ export default function ProfileDashboard() {
   const [isGeneratingCV, setIsGeneratingCV] = useState(false);
   const [cvData, setCvData] = useState<any>(null);
 
+  const loadedRef = React.useRef(false);
+
   useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+
     async function load() {
       if (!currentUser?.uid) { setLoading(false); return; }
       const [userStats, userProfile, aiRec] = await Promise.all([
@@ -47,12 +52,14 @@ export default function ProfileDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: profile?.displayName || currentUser.displayName,
-          career: rec?.careerTitle || '',
-          skills: rec?.skills || [],
-          points: stats?.points || 0,
-          projectCount: stats?.projectCount || 0,
-          completedTasks: stats?.completedTasks || 0,
+          profile: {
+            displayName: profile?.displayName || currentUser.displayName,
+            pendidikan: profile?.pendidikan || '',
+            archetype: profile?.archetype || '',
+            primaryField: rec?.careerTitle || '',
+          },
+          radarStats: Object.fromEntries((rec?.skills || []).map((s: string, i: number) => [s, Math.max(40, 90 - i * 8)])),
+          projects: [],
         })
       });
       const data = await res.json();
@@ -61,6 +68,17 @@ export default function ProfileDashboard() {
       console.error('CV generation error:', err);
     }
     setIsGeneratingCV(false);
+  };
+
+  const handleDownloadCV = () => {
+    if (!cvData?.markdown) return;
+    const blob = new Blob([cvData.markdown], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `CV_${profile?.displayName || 'resume'}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (!currentUser) {
@@ -108,20 +126,20 @@ export default function ProfileDashboard() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-[2.5rem] bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.04)] overflow-hidden mb-8"
+              className="rounded-[2.5rem] bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.04)] mb-8 overflow-hidden"
             >
               {/* Banner gradient */}
-              <div className="h-28 bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 relative">
+              <div className="h-32 bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 relative">
                 <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.4) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
               </div>
 
-              <div className="px-8 pb-8 -mt-14 flex flex-col md:flex-row items-center md:items-end gap-6">
+              <div className="px-8 pb-8 -mt-12 flex flex-col md:flex-row md:items-end gap-4 relative z-10">
                 {/* Avatar */}
-                <div className="w-28 h-28 rounded-[2rem] bg-white border-4 border-white p-1 shadow-2xl shrink-0">
+                <div className="w-24 h-24 rounded-[1.5rem] bg-white border-4 border-white p-0.5 shadow-2xl shrink-0">
                   {currentUser.photoURL ? (
-                    <img src={currentUser.photoURL} alt="" className="w-full h-full rounded-[1.5rem] object-cover" />
+                    <img src={currentUser.photoURL} alt="" className="w-full h-full rounded-[1.2rem] object-cover" />
                   ) : (
-                    <div className="w-full h-full rounded-[1.5rem] bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-4xl font-black text-white">
+                    <div className="w-full h-full rounded-[1.2rem] bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-3xl font-black text-white">
                       {displayName.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -133,7 +151,7 @@ export default function ProfileDashboard() {
                   <div className="flex items-center gap-2 mt-1 justify-center md:justify-start flex-wrap">
                     <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 font-black text-xs px-3 py-1 shadow-md">
                       <Briefcase size={12} className="mr-1" />
-                      {typeof window !== 'undefined' ? localStorage.getItem('skillpath_target_career') || rec?.careerTitle || 'Explorer' : rec?.careerTitle || 'Explorer'}
+                      {rec?.careerTitle || (typeof window !== 'undefined' ? localStorage.getItem(`skillpath_career_${currentUser?.uid}`) : null) || 'Explorer'}
                     </Badge>
                     <Badge variant="outline" className="text-slate-600 border-slate-300 font-bold text-xs">
                       Level {level} · {level >= 5 ? 'Expert' : level >= 3 ? 'Intermediate' : 'Beginner'}
@@ -228,8 +246,8 @@ export default function ProfileDashboard() {
                         <div className="text-sm font-bold text-emerald-800">CV Siap!</div>
                       </div>
                       <p className="text-xs text-slate-600">Role: <span className="font-black text-slate-900">{cvData.recommendedRole || rec?.careerTitle}</span></p>
-                      <Button className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black uppercase tracking-widest text-xs shadow-lg hover:shadow-xl transition-all">
-                        <Download size={16} className="mr-2" /> Download PDF
+                      <Button onClick={handleDownloadCV} className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black uppercase tracking-widest text-xs shadow-lg hover:shadow-xl transition-all">
+                        <Download size={16} className="mr-2" /> Download CV
                       </Button>
                     </motion.div>
                   )}

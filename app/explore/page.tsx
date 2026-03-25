@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { Search, Brain, Code, Server, Palette, Sparkles, Network, Database, ShieldAlert, Cpu, ChartBar, LayoutTemplate, Briefcase, Gamepad2, Shield, Zap, Globe, Laptop, Heart, GraduationCap, ShoppingCart, Film, ChevronDown, Bot } from 'lucide-react';
+import { Search, Brain, Code, Server, Palette, Sparkles, Network, Database, ShieldAlert, Cpu, ChartBar, LayoutTemplate, Briefcase, Gamepad2, Shield, Zap, Globe, Laptop, Heart, GraduationCap, ShoppingCart, Film, ChevronDown, Bot, ArrowUp } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { CAREERS, CATEGORIES, computeMatchScore, searchCareers, type Career } from '@/lib/careers-database';
-import { saveAIRecommendation, getAIRecommendation } from '@/lib/firestore';
+import { saveAIRecommendation, getAIRecommendation, saveUserProfile } from '@/lib/firestore';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   "Kreatif & Desain": <Palette className="w-8 h-8 text-orange-500" />,
@@ -45,8 +45,14 @@ export default function ExploreCareers() {
   const [selectedCareer, setSelectedCareer] = useState<Career | null>(null);
   const searchParams = useSearchParams();
 
-  // Pagination
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setShowScrollTop(window.scrollY > 300);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // AI State
   const [aiLoading, setAiLoading] = useState(false);
@@ -137,7 +143,7 @@ export default function ExploreCareers() {
   // Save AI result to Firestore once we have BOTH the result and the user ID
   useEffect(() => {
     if (aiResult && currentUser?.uid) {
-      localStorage.setItem('skillpath_target_career', aiResult.careerTitle);
+      localStorage.setItem(`skillpath_career_${currentUser.uid}`, aiResult.careerTitle);
       // Check if it's already saved to prevent infinite writes
       getAIRecommendation(currentUser.uid).then(saved => {
         if (!saved || saved.careerTitle !== aiResult.careerTitle) {
@@ -255,9 +261,15 @@ export default function ExploreCareers() {
                               </div>
 
                               <Button 
-                                onClick={() => {
+                                onClick={async () => {
                                   setAiResult(opt);
                                   setAiOptions(null);
+                                  if (currentUser?.uid) {
+                                    // Save career to localStorage so paths/journey pick it up
+                                    localStorage.setItem(`skillpath_career_${currentUser.uid}`, opt.careerTitle);
+                                    // Also save to user profile in Firestore
+                                    saveUserProfile(currentUser.uid, { targetCareer: opt.careerTitle } as any).catch(console.warn);
+                                  }
                                 }}
                                 className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl"
                               >
@@ -506,6 +518,22 @@ export default function ExploreCareers() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Scroll to Top button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-8 right-8 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-[0_4px_20px_rgba(245,158,11,0.4)] flex items-center justify-center hover:scale-110 transition-transform"
+            aria-label="Scroll to top"
+          >
+            <ArrowUp size={20} />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

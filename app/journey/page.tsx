@@ -24,27 +24,41 @@ export default function LearningJourney() {
   const [career, setCareer] = useState('');
   const [streak, setStreak] = useState(0);
 
+  const loadedRef = React.useRef(false);
+
   useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+
     async function load() {
       if (!currentUser?.uid) { setLoading(false); return; }
 
-      // Get current target career from localStorage or AI recommendation
-      let targetCareer = localStorage.getItem('skillpath_target_career') || '';
-      if (!targetCareer) {
-        const rec = await getAIRecommendation(currentUser.uid);
-        targetCareer = rec?.careerTitle || 'Full-Stack Developer';
-        localStorage.setItem('skillpath_target_career', targetCareer);
-      }
+      const careerKey = `skillpath_career_${currentUser.uid}`;
+      const currentCareer = localStorage.getItem(careerKey) || '';
 
-      // Check if there's an existing journey that matches their CURRENT target career
+      // Check Firestore for existing journey
       const existing = await getUserJourney(currentUser.uid);
-      if (existing && existing.targetCareer === targetCareer) {
+
+      // If existing journey matches current career → load it directly
+      const careerChanged = currentCareer && existing?.targetCareer && currentCareer !== existing.targetCareer;
+
+      if (existing && existing.tasks?.length > 0 && !careerChanged) {
+        localStorage.setItem(careerKey, existing.targetCareer);
         setTasks(existing.tasks || []);
         setCareer(existing.targetCareer || '');
         setStreak(existing.streak || 0);
         setLoading(false);
         return;
       }
+
+      // No journey saved or career changed → determine career and generate
+      let targetCareer = currentCareer || '';
+      if (!targetCareer) {
+        const rec = await getAIRecommendation(currentUser.uid);
+        targetCareer = rec?.careerTitle || 'Full-Stack Developer';
+        localStorage.setItem(careerKey, targetCareer);
+      }
+
       setCareer(targetCareer);
       setGenerating(true);
 

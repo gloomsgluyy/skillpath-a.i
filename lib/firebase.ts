@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "dummy_api_key",
@@ -14,8 +14,11 @@ const firebaseConfig = {
 // Initialize Firebase only if it hasn't been initialized yet
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
+// experimentalForceLongPolling is required to avoid 'client is offline' errors
+// on localhost and environments behind proxies/firewalls
 const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
+  cacheSizeBytes: CACHE_SIZE_UNLIMITED,
 });
 const googleProvider = new GoogleAuthProvider();
 
