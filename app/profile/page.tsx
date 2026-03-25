@@ -105,9 +105,9 @@ export default function ProfileDashboard() {
                 <div className="absolute inset-0 opacity-30 bg-[radial-gradient(rgba(255,255,255,0.4)_1px,transparent_1px)] [background-size:20px_20px]" />
               </div>
 
-              <div className="px-6 md:px-10 pb-8 -mt-10 flex flex-col md:flex-row md:items-end gap-6 relative z-10">
+              <div className="px-6 md:px-10 pb-8 flex flex-col items-center md:flex-row md:items-end gap-6 relative z-10">
                 {/* Avatar */}
-                <div className="w-24 h-24 rounded-[1.5rem] bg-white border-4 border-white p-0.5 shadow-lg shrink-0">
+                <div className="w-24 h-24 rounded-[1.5rem] bg-white border-4 border-white p-0.5 shadow-lg shrink-0 -mt-12 md:-mt-16 mx-auto md:mx-0">
                   {currentUser.photoURL ? (
                     <img src={currentUser.photoURL} alt="" className="w-full h-full rounded-[1.2rem] object-cover" />
                   ) : (
