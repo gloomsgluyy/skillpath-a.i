@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 
-const groq = new Groq({apiKey: process.env.GROQ_API_KEY});
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  // INI POSISI YANG BENAR: Di DALAM fungsi POST dan pakai dummy key!
+  const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY || "gsk_dummykeyhanyauntukbuild123",
+  });
+
   try {
     const body = await req.json();
     const topic = body.career || body.topic;

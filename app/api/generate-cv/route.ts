@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 
-const groq = new Groq({apiKey: process.env.GROQ_API_KEY});
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY || "dummy_key_hanya_untuk_build123"
+  });
+
   try {
     const { profile, radarStats, projects } = await req.json();
 
@@ -23,7 +27,7 @@ Generate a highly professional ATS-friendly resume layout in markdown format as 
 Make the tone professional, confident, and action-oriented. Indonesian language.
 Respond ONLY in JSON:
 {
-  "markdown": "# Header\n\n## Experience\n...",
+  "markdown": "# Header\\n\\n## Experience\\n...",
   "recommendedRole": "Specific role based on stats (e.g. Junior Cloud Engineer)"
 }
 `;

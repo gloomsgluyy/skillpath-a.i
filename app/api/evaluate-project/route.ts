@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import Groq from 'groq-sdk';
 
+export const dynamic = 'force-dynamic';
+
 const evaluateSchema = z.object({
   projectTitle: z.string().min(1, 'Judul proyek wajib diisi'),
   submissionLink: z.string().url('Tautan tidak valid, harus berupa URL (http/https)'),
@@ -9,9 +11,11 @@ const evaluateSchema = z.object({
   career: z.string().optional(),
 });
 
-const groq = new Groq({apiKey: process.env.GROQ_API_KEY});
-
 export async function POST(req: Request) {
+  const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY || "dummy_key_hanya_untuk_build123"
+  });
+
   try {
     const body = await req.json();
     const validation = evaluateSchema.safeParse(body);

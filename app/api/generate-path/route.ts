@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+  // Groq dipindah ke DALAM function agar tidak dieksekusi saat build
+  const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY || "dummy_key_hanya_untuk_build123",
+  });
+
   try {
     const { career, profile, question } = await req.json();
 
@@ -53,7 +56,6 @@ Respond ONLY in valid JSON format:
       "prerequisites": []
     }
   ]
-}
 }
 Generate 6 to 8 sequential nodes. Write in Indonesian.
 Do NOT use any emojis in your response.
