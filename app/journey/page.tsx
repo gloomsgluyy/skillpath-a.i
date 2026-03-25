@@ -27,66 +27,71 @@ export default function LearningJourney() {
   const loadedRef = React.useRef(false);
 
   useEffect(() => {
-    if (loadedRef.current) return;
-    loadedRef.current = true;
-
     async function load() {
       if (!currentUser?.uid) { setLoading(false); return; }
 
-      const careerKey = `skillpath_career_${currentUser.uid}`;
-      const currentCareer = localStorage.getItem(careerKey) || '';
-
-      // Check Firestore for existing journey
-      const existing = await getUserJourney(currentUser.uid);
-
-      // If existing journey matches current career → load it directly
-      const careerChanged = currentCareer && existing?.targetCareer && currentCareer !== existing.targetCareer;
-
-      if (existing && existing.tasks?.length > 0 && !careerChanged) {
-        localStorage.setItem(careerKey, existing.targetCareer);
-        setTasks(existing.tasks || []);
-        setCareer(existing.targetCareer || '');
-        setStreak(existing.streak || 0);
-        setLoading(false);
-        return;
-      }
-
-      // No journey saved or career changed → determine career and generate
-      let targetCareer = currentCareer || '';
-      if (!targetCareer) {
-        const rec = await getAIRecommendation(currentUser.uid);
-        targetCareer = rec?.careerTitle || 'Full-Stack Developer';
-        localStorage.setItem(careerKey, targetCareer);
-      }
-
-      setCareer(targetCareer);
-      setGenerating(true);
+      // Prevent double-fire (React StrictMode) — AFTER auth check
+      // so early runs with null user don't block real runs
+      if (loadedRef.current) return;
+      loadedRef.current = true;
 
       try {
-        const res = await fetch('/api/generate-journey', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ career: targetCareer })
-        });
-        const data = await res.json();
+        const careerKey = `skillpath_career_${currentUser.uid}`;
+        const currentCareer = localStorage.getItem(careerKey) || '';
 
-        if (data.tasks && Array.isArray(data.tasks)) {
-          const journeyTasks: JourneyTask[] = data.tasks.map((t: any, i: number) => ({
-            id: `task-${i}`,
-            day: t.day || i + 1,
-            title: t.title || `Task ${i + 1}`,
-            estimatedMinutes: t.estimatedMinutes || 30,
-            completed: false,
-            completedAt: null,
-          }));
-          setTasks(journeyTasks);
-          saveUserJourney(currentUser.uid, targetCareer, journeyTasks).catch(console.warn);
+        // Check Firestore for existing journey
+        const existing = await getUserJourney(currentUser.uid);
+
+        // If existing journey matches current career → load it directly
+        const careerChanged = currentCareer && existing?.targetCareer && currentCareer !== existing.targetCareer;
+
+        if (existing && existing.tasks?.length > 0 && !careerChanged) {
+          localStorage.setItem(careerKey, existing.targetCareer);
+          setTasks(existing.tasks || []);
+          setCareer(existing.targetCareer || '');
+          setStreak(existing.streak || 0);
+          return;
         }
-      } catch (err) {
-        console.error('Journey generation error:', err);
+
+        // No journey saved or career changed → determine career and generate
+        let targetCareer = currentCareer || '';
+        if (!targetCareer) {
+          const rec = await getAIRecommendation(currentUser.uid);
+          targetCareer = rec?.careerTitle || 'Full-Stack Developer';
+          localStorage.setItem(careerKey, targetCareer);
+        }
+
+        setCareer(targetCareer);
+        setGenerating(true);
+
+        try {
+          const res = await fetch('/api/generate-journey', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ career: targetCareer })
+          });
+          const data = await res.json();
+
+          if (data.tasks && Array.isArray(data.tasks)) {
+            const journeyTasks: JourneyTask[] = data.tasks.map((t: any, i: number) => ({
+              id: `task-${i}`,
+              day: t.day || i + 1,
+              title: t.title || `Task ${i + 1}`,
+              estimatedMinutes: t.estimatedMinutes || 30,
+              completed: false,
+              completedAt: null,
+              resources: t.resources || [],
+            }));
+            setTasks(journeyTasks);
+            saveUserJourney(currentUser.uid, targetCareer, journeyTasks).catch(console.warn);
+          }
+        } catch (err) {
+          console.error('Journey generation error:', err);
+        }
+        setGenerating(false);
+      } finally {
+        setLoading(false);
       }
-      setGenerating(false);
-      setLoading(false);
     }
     load();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -309,7 +314,7 @@ export default function LearningJourney() {
                         </motion.div>
                       </TooltipTrigger>
                       <TooltipContent className="bg-white border-slate-200 text-slate-900 shadow-lg">
-                        <p className="font-bold text-xs">{task.completed ? 'Sudah selesai! 🎉' : 'Klik untuk menyelesaikan task ini'}</p>
+                        <p className="font-bold text-xs">{task.completed ? 'Sudah selesai!' : 'Klik untuk menyelesaikan task ini'}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>

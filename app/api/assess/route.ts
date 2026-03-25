@@ -2,22 +2,12 @@ import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import { DISCOVER_QUESTIONS } from '@/lib/questions';
 
-// TAMBAHAN 1: Berikan 'fallback' key agar tidak crash saat proses build (npm run build)
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || "dummy_key_hanya_untuk_build",
+  apiKey: process.env.GROQ_API_KEY,
 });
 
 export async function POST(req: Request) {
   try {
-    // TAMBAHAN 2: Cek apakah API Key benar-benar ada saat runtime
-    if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY === "dummy_key_hanya_untuk_build") {
-      console.error("CRITICAL ERROR: GROQ_API_KEY tidak ditemukan!");
-      return NextResponse.json(
-        { error: 'Konfigurasi server bermasalah (API Key hilang).' },
-        { status: 500 }
-      );
-    }
-
     const body = await req.json();
     const { answers, profile } = body;
 
@@ -91,19 +81,7 @@ Do NOT use any emojis in your response.
     });
 
     const content = chatCompletion.choices[0]?.message?.content || '{}';
-
-    // TAMBAHAN 3: Try-Catch khusus untuk JSON Parsing
-    // Melindungi server crash jika AI halusinasi dan mereturn teks biasa (bukan JSON)
-    let parsedData;
-    try {
-      parsedData = JSON.parse(content);
-    } catch (parseError) {
-      console.error('JSON Parsing Error dari Groq:', content);
-      return NextResponse.json(
-        { error: 'AI mengembalikan format data yang salah. Silakan coba lagi.' },
-        { status: 500 }
-      );
-    }
+    const parsedData = JSON.parse(content);
 
     return NextResponse.json(parsedData);
   } catch (error: any) {

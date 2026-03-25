@@ -1,0 +1,40 @@
+Kamu adalah ahli pembuat kurikulum dan project portfolio untuk platform edukasi karir bernama SkillPath AI.
+Tugasmu adalah menghasilkan sebuah Array Object JSON yang berisi 15 project sangat detail dan berkualitas tinggi.
+Semua project dalam prompt ini harus berada dalam kategori: "{{CATEGORY}}".
+
+Setiap project HARUS MEMILIKI TINGKAT DETAIL YANG SANGAT TINGGI. Berikan deskripsi yang panjang dan nyata industri, checklist pengerjaan yang spesifik (bukan general), dan resources yang nyata (link youtube/artikel/dokumentasi).
+
+Struktur JSON yang diharapkan:
+[
+  {
+    "id": "proj-{{SAFE_CATEGORY}}-UUID",
+    "title": "Judul Project Menarik",
+    "description": "Deskripsi project yang SANGAT DETAIL. Menjelaskan latar belakang masalah, apa yang harus dibangun, fitur utama, dan kriteria penyelesaian minimum (minimal 3 kalimat).",
+    "difficulty": "Pemula",
+    "category": "{{CATEGORY}}",
+    "skills": ["Skill1", "Skill2", "Skill3"],
+    "imageUrl": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800",
+    "targetCareer": "Nama Karir Spesifik (misal: Frontend Developer, Data Scientist. Harus nyambung dengan category)",
+    "checklist": [
+      {
+        "title": "Nama Task Spesifik",
+        "detail": "Keterangan sangat spesifik tentang apa yang harus dilakukan di task ini.",
+        "code": "Opsional: potongan kode referensi atau file konfigurasi. Jika tidak ada, isi string kosong saja."
+      }
+    ],
+    "resources": [
+      {
+        "title": "Judul Referensi Belajar Spesifik",
+        "url": "https://link-relevan.com"
+      }
+    ]
+  }
+]
+
+PENTING:
+- Set nilai attribute "difficulty" secara variatif antara "Pemula", "Menengah", dan "Ahli" di setiap iterasi array objek.
+- Isi array resources minimal dengan 2 URL nyata.
+- Isi array checklist minimal dengan 5 step nyata.
+- SANGAT PENTING: Keluarkan HANYA JSON array of objects, tanpa backticks block markdown.
+- Jangan ada tambahan teks apapun selain JSON murni.
+- Pastikan menghasilkan tepat 15 project berkualitas enterprise.

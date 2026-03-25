@@ -1,8 +1,11 @@
+// app/api/scrape-careers/route.ts
 import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 
 // WAJIB: Memaksa API agar selalu dinamis dan tidak di-cache oleh Next.js
 export const dynamic = 'force-dynamic';
+
+const groq = new Groq({apiKey: process.env.GROQ_API_KEY});
 
 const JSON_SCHEMA = `[
   {
@@ -44,11 +47,6 @@ const FALLBACK_CAREERS = [
 ];
 
 export async function POST(req: Request) {
-  // PINDAHKAN GROQ KE SINI DENGAN DUMMY KEY
-  const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY || "dummy_key_hanya_untuk_build123",
-  });
-
   try {
     const { keyword, category } = await req.json();
 
@@ -75,21 +73,21 @@ KEMBALIKAN HANYA ARRAY JSON VALID SEPERTI INI: ${JSON_SCHEMA}`;
       messages: [{ role: "system", content: systemPrompt }],
       model: "llama3-8b-8192",
       temperature: 0.1, // Temperatur rendah agar logis
-      response_format: { type: "json_object" },
+      response_format: { type: "json_object" }, 
     });
 
     const responseContent = chatCompletion.choices[0]?.message?.content || "[]";
 
     // 2. EXTRAKSI JSON AMAN (Regex)
     try {
-      const jsonMatch = responseContent.match(/\[[\s\S]*\]/);
+      const jsonMatch = responseContent.match(/\[[\s\S]*\]/); 
       const cleanJson = jsonMatch ? jsonMatch[0] : responseContent;
       const parsedData = JSON.parse(cleanJson);
-
+      
       let finalData = Array.isArray(parsedData) ? parsedData : (parsedData.careers || Object.values(parsedData).find(Array.isArray) || []);
-
+      
       if (finalData.length === 0) throw new Error("AI mengembalikan data kosong");
-
+      
       return NextResponse.json({ careers: finalData });
 
     } catch (parseError) {
@@ -99,20 +97,20 @@ KEMBALIKAN HANYA ARRAY JSON VALID SEPERTI INI: ${JSON_SCHEMA}`;
 
   } catch (error: any) {
     console.error("API Error/Fallback System triggered:", error.message);
-
+    
     // --- SISTEM FALLBACK SISTEM MANUAL (Pasti Berhasil) ---
     // Jika AI gagal atau lambat, kita lakukan filter data cadangan secara manual berdasarkan kategori.
-
+    
     let dynamicCareers = [];
     try {
-      dynamicCareers = FALLBACK_CAREERS;
+        dynamicCareers = FALLBACK_CAREERS; 
     } catch (e) {
-      dynamicCareers = FALLBACK_CAREERS.slice(0, 6);
+        dynamicCareers = FALLBACK_CAREERS.slice(0, 6); 
     }
-
-    return NextResponse.json({
+    
+    return NextResponse.json({ 
       error: "Sistem server AI sibuk, menampilkan data cadangan lengkap.",
-      careers: dynamicCareers
+      careers: dynamicCareers 
     }, { status: 200 }); // Status 200 agar UI menampilkannya
   }
 }

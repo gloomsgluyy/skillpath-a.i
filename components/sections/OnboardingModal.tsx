@@ -42,7 +42,7 @@ const ROLE_OPTIONS = [
 ];
 
 export default function OnboardingModal() {
-  const { signInWithNickname, currentUser } = useAuth();
+  const { signInWithEmail, signInWithGoogle, currentUser } = useAuth();
   const router = useRouter();
   
   const [data, setData] = useState<OnboardingState>({
@@ -87,7 +87,7 @@ export default function OnboardingModal() {
     setTimeout(() => setData({ step: 1, pendidikan: '', archetype: '', roleInterests: [], jurusan: '', minat: '', displayName: '', email: '', pass: '' }), 300);
   };
 
-  const handleLogin = async () => {
+  const handleEmailLogin = async () => {
     setIsSubmitting(true);
     try {
       localStorage.setItem('skillpath_onboarding_data', JSON.stringify({
@@ -99,15 +99,40 @@ export default function OnboardingModal() {
         displayName: data.displayName,
       }));
 
-      // If not logged in, login or register with nickname
       if (!currentUser) {
-        await signInWithNickname(data.displayName);
+        await signInWithEmail(data.email, data.pass, data.displayName);
       }
       
       closeModal();
       router.push('/explore?showAiResult=true');
     } catch (error) {
       console.error("Login failed:", error);
+      alert("Gagal masuk. Periksa koneksi dan password Anda.");
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsSubmitting(true);
+    try {
+      localStorage.setItem('skillpath_onboarding_data', JSON.stringify({
+        pendidikan: data.pendidikan,
+        archetype: data.archetype,
+        roleInterests: data.roleInterests,
+        jurusan: data.jurusan,
+        minat: data.minat,
+        displayName: data.displayName,
+      }));
+
+      if (!currentUser) {
+        await signInWithGoogle();
+      }
+      
+      closeModal();
+      router.push('/explore?showAiResult=true');
+    } catch (error) {
+      console.error("Google Login failed:", error);
+      alert("Gagal masuk dengan Google.");
       setIsSubmitting(false);
     }
   };
@@ -225,7 +250,7 @@ export default function OnboardingModal() {
               <div>
                 <span className="inline-block px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest mb-2">Langkah 3/{totalSteps}</span>
                 <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-1 leading-tight">Bidang yang Menarik?</h3>
-                <p className="text-slate-500 text-xs sm:text-sm font-medium">Pilih sebanyak yang kamu mau — bebas! 😉</p>
+                <p className="text-slate-500 text-xs sm:text-sm font-medium">Pilih sebanyak yang kamu mau — bebas!</p>
               </div>
 
               <div className="flex flex-wrap gap-2 overflow-y-auto max-h-[45vh] sm:max-h-[260px] pr-1 pb-2">
@@ -257,7 +282,7 @@ export default function OnboardingModal() {
                       : 'bg-white text-slate-500 border-slate-200 hover:border-amber-300'
                   }`}
                 >
-                  ✨ Lainnya — Ketik role impianmu sendiri
+                  Lainnya — Ketik role impianmu sendiri
                 </button>
                 {showCustomRole && (
                   <div className="flex gap-2">
@@ -369,38 +394,54 @@ export default function OnboardingModal() {
 
               <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-1.5 tracking-tight leading-tight">Satu Langkah Lagi!</h3>
               <p className="text-slate-500 text-xs sm:text-sm font-semibold leading-relaxed mb-5 max-w-xs">
-                Masukkan nama panggilanmu untuk memulai petualangan karir.
+                Buat akun atau masuk untuk menyimpan progress belajar Anda.
               </p>
 
-              {/* Display Name Input */}
-              <div className="w-full max-w-sm mb-4">
-                <div className="relative">
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                    <User size={18} />
-                  </div>
-                  <input 
-                    type="text"
-                    value={data.displayName}
-                    onChange={(e) => setData(p => ({ ...p, displayName: e.target.value }))}
-                    placeholder="Contoh: Andi, Budi, atau Jessi"
-                    className="w-full px-4 py-4 rounded-xl bg-slate-50 border-2 border-slate-100 focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all font-black text-slate-800 text-lg text-center shadow-inner"
-                  />
-                </div>
+              <div className="w-full max-w-sm space-y-3 mb-4 flex-1 overflow-y-auto">
+                <input 
+                  type="text"
+                  value={data.displayName}
+                  onChange={(e) => setData(p => ({ ...p, displayName: e.target.value }))}
+                  placeholder="Nama Panggilan"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border-2 border-slate-100 focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all font-bold text-slate-800 text-sm"
+                />
+                <input 
+                  type="email"
+                  value={data.email}
+                  onChange={(e) => setData(p => ({ ...p, email: e.target.value }))}
+                  placeholder="Alamat Email"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border-2 border-slate-100 focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all font-bold text-slate-800 text-sm"
+                />
+                <input 
+                  type="password"
+                  value={data.pass}
+                  onChange={(e) => setData(p => ({ ...p, pass: e.target.value }))}
+                  placeholder="Kata Sandi (Minimal 6 Karakter)"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border-2 border-slate-100 focus:border-amber-500 focus:bg-white focus:ring-4 focus:ring-amber-500/10 outline-none transition-all font-bold text-slate-800 text-sm"
+                />
               </div>
 
               <button 
-                  onClick={handleLogin}
-                  disabled={isSubmitting || !data.displayName.trim()}
-                  className="w-full max-w-sm py-6 rounded-2xl text-base font-black bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-xl shadow-amber-500/20 text-white disabled:opacity-50 transition-all active:scale-95"
+                  onClick={handleEmailLogin}
+                  disabled={isSubmitting || !data.email || !data.pass || data.pass.length < 6}
+                  className="w-full max-w-sm py-4 mb-3 rounded-2xl text-sm font-black bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-[0_10px_25px_rgba(245,158,11,0.35)] text-white disabled:opacity-50 transition-all active:scale-95"
                >
-                {isSubmitting ? (
-                   <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-[3px] border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
-                      <span className="text-amber-600 text-sm">Memproses...</span>
-                   </div>
-                ) : (
-                    <span className="text-white">🚀 Selesai & Lihat Karirku</span>
-                 )}
+                 {isSubmitting ? "Memproses..." : "Simpan & Lanjut"}
+               </button>
+
+               <div className="flex items-center gap-2 w-full max-w-sm mb-3">
+                 <div className="flex-1 h-px bg-slate-200"></div>
+                 <span className="text-[10px] font-bold text-slate-400 uppercase">ATAU</span>
+                 <div className="flex-1 h-px bg-slate-200"></div>
+               </div>
+
+               <button 
+                  onClick={handleGoogleLogin}
+                  disabled={isSubmitting}
+                  className="w-full max-w-sm py-3.5 rounded-2xl text-sm font-black bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-sm text-slate-700 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-3"
+               >
+                 <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                 Lanjutkan dengan Google
                </button>
             </motion.div>
           )}

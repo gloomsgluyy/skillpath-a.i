@@ -36,7 +36,21 @@ export const RoadmapCanvas = ({ nodes, career, onNodeClick }: Props) => {
     setTranslate({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
   }, [isDragging, dragStart]);
 
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest('.neural-node')) return;
+    const touch = e.touches[0];
+    setIsDragging(true);
+    setDragStart({ x: touch.clientX - translate.x, y: touch.clientY - translate.y });
+  }, [translate]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    setTranslate({ x: touch.clientX - dragStart.x, y: touch.clientY - dragStart.y });
+  }, [isDragging, dragStart]);
+
   const handleMouseUp = useCallback(() => setIsDragging(false), []);
+  const handleTouchEnd = useCallback(() => setIsDragging(false), []);
 
   const resetView = () => { setScale(1); setTranslate({ x: 0, y: 0 }); };
 
@@ -45,13 +59,15 @@ export const RoadmapCanvas = ({ nodes, career, onNodeClick }: Props) => {
     onNodeClick(node);
   };
 
-  // Compute canvas bounds from node coordinates
-  const maxX = Math.max(...nodes.map(n => n.coordinates.x), 800) + 200;
-  const maxY = Math.max(...nodes.map(n => n.coordinates.y), 600) + 200;
+  // Compute canvas bounds from node coordinates with robust defaults
+  const validX = nodes.map(n => n.coordinates.x).filter(x => typeof x === 'number' && !isNaN(x));
+  const validY = nodes.map(n => n.coordinates.y).filter(y => typeof y === 'number' && !isNaN(y));
 
-  // Timeline Y markers
-  const timelineSteps = nodes.filter(n => n.duration).length;
-  const yValues = [...new Set(nodes.map(n => n.coordinates.y))].sort((a, b) => a - b);
+  const maxX = (validX.length > 0 ? Math.max(...validX) : 800) + 400;
+  const maxY = (validY.length > 0 ? Math.max(...validY) : 600) + 400;
+
+  // Timeline Y markers - ensure we only handle valid numbers
+  const yValues = [...new Set(validY)].sort((a, b) => a - b);
 
   const completedCount = nodes.filter(n => n.status === 'completed').length;
   const progressPct = nodes.length > 0 ? Math.round((completedCount / nodes.length) * 100) : 0;
@@ -70,16 +86,36 @@ export const RoadmapCanvas = ({ nodes, career, onNodeClick }: Props) => {
         backgroundSize: '24px 24px',
       }} />
 
-      {/* Timeline Y-axis markers */}
-      <div className="absolute left-0 top-0 bottom-0 w-16 z-20 flex flex-col pointer-events-none">
+      {/* Title Header - MATCH REFERENCE */}
+      <div className="absolute top-4 sm:top-6 left-4 sm:left-8 z-30 pointer-events-none max-w-[60%] sm:max-w-none">
+        <h2 className="text-lg sm:text-2xl font-black text-slate-800 tracking-tight leading-none drop-shadow-sm">Neural Roadmap</h2>
+        <p className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] font-bold text-slate-400 mt-1 sm:mt-1.5 flex items-center gap-1.5 sm:gap-2">
+          <span className="w-4 sm:w-8 h-[1px] bg-slate-200" /> <span className="truncate">{career}</span>
+        </p>
+      </div>
+
+      {/* Progress bar top-right */}
+      <div className="absolute top-4 sm:top-6 right-4 sm:right-8 z-30 flex items-center gap-2 sm:gap-3 bg-white/60 backdrop-blur-xl rounded-full px-3 sm:px-4 py-1.5 sm:py-2 border border-white/40 shadow-sm scale-90 sm:scale-100 origin-right">
+        <div className="flex-1 w-16 sm:w-24 h-1 bg-slate-200/50 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-gradient-to-r from-amber-400 to-orange-500"
+            initial={{ width: '0%' }}
+            animate={{ width: `${progressPct}%` }}
+          />
+        </div>
+        <span className="text-[8px] sm:text-[10px] font-black text-slate-500">{completedCount}/{nodes.length}</span>
+      </div>
+
+      {/* Timeline Y-axis markers - MATCH REFERENCE STYLE */}
+      <div className="absolute left-0 top-0 bottom-0 w-8 sm:w-12 z-20 flex flex-col pointer-events-none border-r border-slate-200/10">
         {yValues.map((y, i) => (
           <div
             key={i}
-            className="absolute left-2 flex items-center gap-1"
-            style={{ top: y * scale + translate.y - 10 }}
+            className="absolute left-1.5 sm:left-3 flex items-center gap-1 sm:gap-2"
+            style={{ top: y * scale + translate.y }}
           >
-            <div className="w-6 h-[1px] bg-slate-300/50" />
-            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider writing-mode-vertical whitespace-nowrap">
+             <div className="h-6 sm:h-10 border-l border-slate-300/30" />
+             <span className="text-[7px] sm:text-[10px] font-black text-slate-400/50 uppercase tracking-tight [writing-mode:vertical-lr] rotate-180">
               Bulan {i + 1}
             </span>
           </div>
@@ -90,11 +126,15 @@ export const RoadmapCanvas = ({ nodes, career, onNodeClick }: Props) => {
       <div
         ref={containerRef}
         className={`absolute inset-0 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        style={{ touchAction: 'none' }}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <div
           style={{
@@ -135,25 +175,6 @@ export const RoadmapCanvas = ({ nodes, career, onNodeClick }: Props) => {
           ))}
         </div>
       </div>
-
-      {/* Progress bar top */}
-      <div className="absolute top-4 left-20 right-4 z-20">
-        <div className="flex items-center gap-3 bg-white/70 backdrop-blur-xl rounded-full px-4 py-2 border border-white/40 shadow-sm">
-          <Sparkles size={14} className="text-amber-500 shrink-0" />
-          <span className="text-xs font-black text-slate-700 shrink-0">Neural Roadmap: {career}</span>
-          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full"
-              initial={{ width: '0%' }}
-              animate={{ width: `${progressPct}%` }}
-              transition={{ duration: 1, ease: 'circOut' }}
-            />
-          </div>
-          <span className="text-[10px] font-bold text-slate-500 shrink-0">{completedCount}/{nodes.length}</span>
-        </div>
-      </div>
-
-      {/* Selected node detail popup */}
       {selectedNode && (
         <motion.div
           initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -170,19 +191,36 @@ export const RoadmapCanvas = ({ nodes, career, onNodeClick }: Props) => {
               <span className="flex items-center gap-1"><Clock size={12} /> {selectedNode.duration || `${selectedNode.estimatedHours || '?'}h`}</span>
               <span className="flex items-center gap-1"><BarChart3 size={12} /> {selectedNode.difficulty || 'Menengah'}</span>
             </div>
+
+            {selectedNode.learning_resources && selectedNode.learning_resources.length > 0 && (
+              <div className="mb-4">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                  <Sparkles size={10} className="text-amber-500" /> Referensi Belajar
+                </p>
+                <div className="flex flex-col gap-1.5 max-h-[160px] overflow-y-auto pr-1">
+                  {selectedNode.learning_resources.map((res: any, idx: number) => (
+                    <a key={idx} href={res.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs font-bold text-slate-700 hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50 transition-all group">
+                      <span className="truncate pr-2 group-hover:underline">{res.title}</span>
+                      <span className="text-[9px] uppercase tracking-wider text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200 shrink-0">{res.type || 'Link'}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {selectedNode.status === 'active' && (
               <button
                 onClick={() => onNodeClick(selectedNode)}
                 className="w-full py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md hover:shadow-lg transition-all active:scale-95"
               >
-                ✅ Tandai Selesai
+                Tandai Selesai
               </button>
             )}
             {selectedNode.status === 'completed' && (
-              <div className="text-center text-xs font-bold text-emerald-600 py-2">✅ Sudah Selesai</div>
+              <div className="text-center text-xs font-bold text-emerald-600 py-2">Sudah Selesai</div>
             )}
             {selectedNode.status === 'locked' && (
-              <div className="text-center text-xs font-bold text-slate-400 py-2">🔒 Selesaikan tahap sebelumnya</div>
+              <div className="text-center text-xs font-bold text-slate-400 py-2">Selesaikan tahap sebelumnya</div>
             )}
           </div>
         </motion.div>

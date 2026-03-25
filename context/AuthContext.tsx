@@ -9,7 +9,7 @@ interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   signInWithEmail: (email: string, pass: string, name?: string) => Promise<void>;
-  signInWithNickname: (nickname: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -84,6 +84,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return signInWithEmail(virtualEmail, virtualPass, nickname);
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      const { signInWithPopup } = await import('firebase/auth');
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      
+      const storedRaw = localStorage.getItem('skillpath_onboarding_data');
+      const onboardingData = storedRaw ? JSON.parse(storedRaw) : {};
+      
+      const targetName = onboardingData.displayName || user.displayName || 'Learner';
+      
+      if (targetName && targetName !== user.displayName) {
+         try {
+           await updateProfile(user, { displayName: targetName });
+         } catch(e){}
+      }
+      
+      await saveUserProfile(user.uid, {
+        uid: user.uid,
+        displayName: targetName,
+        email: user.email,
+        photoURL: user.photoURL,
+        pendidikan: onboardingData.pendidikan || '',
+        archetype: onboardingData.archetype || '',
+        roleInterests: onboardingData.roleInterests || [],
+      }).catch(err => console.error('Firestore save error:', err));
+    } catch (error) {
+      console.error("Error signing in with Google", error);
+      throw error;
+    }
+  };
+
   const logout = () => signOut(auth);
 
   const value = {
@@ -91,6 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     signInWithEmail,
     signInWithNickname,
+    signInWithGoogle,
     logout
   };
 

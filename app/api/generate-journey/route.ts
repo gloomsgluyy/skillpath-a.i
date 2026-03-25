@@ -1,14 +1,9 @@
 import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 
-export const dynamic = 'force-dynamic';
+const groq = new Groq({apiKey: process.env.GROQ_API_KEY});
 
 export async function POST(req: Request) {
-  // INI POSISI YANG BENAR: Di DALAM fungsi POST dan pakai dummy key!
-  const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY || "gsk_dummykeyhanyauntukbuild123",
-  });
-
   try {
     const body = await req.json();
     const topic = body.career || body.topic;
@@ -26,20 +21,19 @@ Respond ONLY in valid JSON format matching this EXACT structure:
       "day": 1,
       "title": "Task title (actionable, e.g., Pelajari konsep dasar X)",
       "estimatedMinutes": 30,
-      "resources": [{"title": "Nama Kursus/Video (Misal: YouTube FreeCodeCamp, W3Schools, dll)", "url": "https://..."}]
-    },
-    {
-      "id": "task_2",
-      "day": 2,
-      "title": "Another task",
-      "estimatedMinutes": 45,
-      "resources": [{"title": "Artikel tutorial", "url": "https://..."}]
+      "resources": [
+        {"title": "Judul Kursus/Video (Misal: FreeCodeCamp Tutorial YouTube)", "url": "https://...", "type": "video"},
+        {"title": "Dokumentasi Resmi / Artikel", "url": "https://...", "type": "artikel"}
+      ]
     }
   ],
   "weeklyMilestone": "Reward title for finishing this week (m.g., 'Sertifikat Dasar-Dasar X')"
 }
-Provide exactly ${durationDays} tasks (one per day). Write in Indonesian.
-Do NOT use any emojis in your response.
+CRITICAL RULES:
+1. Provide exactly ${durationDays} tasks (one per day). 
+2. Write in Indonesian.
+3. Every single task MUST have EXACTLY 5 high-quality learning "resources" in the array. Prioritize real search URLs or popular platform links (YouTube, Medium, W3Schools) to avoid broken links.
+4. Do NOT use any emojis in your response.
 `;
 
     const completion = await groq.chat.completions.create({

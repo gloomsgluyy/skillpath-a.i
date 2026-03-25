@@ -341,7 +341,7 @@ const FlexNavbar: React.FC<FlexNavbarProps> = ({
                                 }}
                               >
                                 <span style={{ fontSize: '0.75rem' }}>
-                                  {isVideoPlaying ? '⏸' : '▶'}
+                                  {isVideoPlaying ? 'Pause' : 'Play'}
                                 </span>
                                 {mediaButtonText}
                               </motion.button>

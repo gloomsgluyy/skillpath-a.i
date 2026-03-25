@@ -34,6 +34,9 @@ export default function SkillPathsPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMsg, setInputMsg] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
+  
+  const mobileChatEndRef = useRef<HTMLDivElement>(null);
 
   const loadedCareerRef = React.useRef<string | null>(null);
 
@@ -42,93 +45,118 @@ export default function SkillPathsPage() {
     const careerParam = searchParams.get('career');
     const loadKey = careerParam || '__default__';
 
-    // Prevent double-fire for the same career (React StrictMode)
-    if (loadedCareerRef.current === loadKey) return;
-    loadedCareerRef.current = loadKey;
-
     async function load() {
+      // Wait for auth — don't set the guard until we know we have a user
       if (!currentUser?.uid) { setLoading(false); return; }
 
-      const careerKey = `skillpath_career_${currentUser.uid}`;
-
-      // 1. Determine the target career from ALL available sources (sync first)
-      const careerFromUrl = careerParam || '';
-      const careerFromStorage = localStorage.getItem(careerKey) || '';
-
-      // 2. Try Firestore for existing path
-      const existingPath = await getSkillPath(currentUser.uid);
-
-      // 3. If user specified a new career (URL or localStorage) that differs from Firestore → regenerate
-      const intendedCareer = careerFromUrl || careerFromStorage;
-      const needsRegenForNewCareer = intendedCareer && existingPath?.targetCareer && intendedCareer !== existingPath.targetCareer;
-
-      if (existingPath && existingPath.nodes?.length > 0 && !needsRegenForNewCareer) {
-        // Load existing path from Firestore
-        localStorage.setItem(careerKey, existingPath.targetCareer);
-        setCareer(existingPath.targetCareer);
-        setNodes(existingPath.nodes || []);
-        // Restore chat history
-        const savedChat = localStorage.getItem(`chat_${currentUser.uid}`);
-        if (savedChat) {
-          try { setMessages(JSON.parse(savedChat)); } catch {
-            setMessages([{ role: 'ai', content: `Selamat datang kembali! Roadmap ${existingPath.targetCareer}-mu siap. Klik node untuk tandai progress!` }]);
-          }
-        } else {
-          setMessages([{ role: 'ai', content: `Selamat datang kembali! Roadmap ${existingPath.targetCareer}-mu siap. Klik node untuk tandai progress!` }]);
-        }
-        setLoading(false);
-        return;
-      }
-
-      // 4. Need to generate — determine career from best available source
-      //    Priority: URL param > localStorage > Firestore AI rec > default
-      let targetCareer = careerFromUrl || careerFromStorage;
-
-      if (!targetCareer) {
-        // Last resort: check Firestore AI recommendation
-        const rec = await getAIRecommendation(currentUser.uid);
-        if (rec) targetCareer = rec.careerTitle;
-      }
-      if (!targetCareer) targetCareer = 'Full-Stack Developer';
-
-      localStorage.setItem(careerKey, targetCareer);
-      setCareer(targetCareer);
-      setGenerating(true);
-      setMessages([{ role: 'ai', content: `Hai! Saya sedang membuatkan roadmap belajar untuk menjadi **${targetCareer}**. Tunggu sebentar...` }]);
+      // Prevent double-fire for the same career (React StrictMode)
+      // IMPORTANT: This guard is AFTER the auth check so that early runs
+      // with null currentUser don't block subsequent real runs.
+      if (loadedCareerRef.current === loadKey) return;
+      loadedCareerRef.current = loadKey;
 
       try {
-        const res = await fetch('/api/generate-path', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ career: targetCareer })
-        });
-        const data = await res.json();
+        const careerKey = `skillpath_career_${currentUser.uid}`;
 
-        if (data.nodes && Array.isArray(data.nodes)) {
-          const pathNodes: SkillPathNode[] = data.nodes.map((n: any, i: number) => ({
-            id: n.id || `node-${i}`,
-            title: n.title || n.label || `Step ${i + 1}`,
-            description: n.description || '',
-            estimatedHours: n.estimatedHours || 10,
-            duration: n.duration || '2 Minggu',
-            difficulty: n.difficulty || 'Menengah',
-            icon_type: n.icon_type || 'code',
-            prerequisites: n.prerequisites || [],
-            status: n.status || (i === 0 ? 'active' : 'locked'),
-            coordinates: n.coordinates || { x: 300 + (i % 3) * 180, y: 100 + Math.floor(i / 2) * 150 },
-            connections: n.connections || [],
-            x: n.coordinates?.x || n.x || 300,
-            y: n.coordinates?.y || n.y || 100 + i * 140,
-          }));
-          setNodes(pathNodes);
-          await saveSkillPath(currentUser.uid, targetCareer, pathNodes);
-          setMessages(prev => [...prev, { role: 'ai', content: `Roadmap ${targetCareer} sudah jadi! Ada ${pathNodes.length} tahapan yang perlu kamu kuasai. Mulai dari yang paling atas ya!` }]);
+        // 1. Determine the target career from ALL available sources (sync first)
+        const careerFromUrl = careerParam || '';
+        const careerFromStorage = localStorage.getItem(careerKey) || '';
+
+        // 2. Try Firestore for existing path
+        const existingPath = await getSkillPath(currentUser.uid);
+
+        // 3. If user specified a new career (URL or localStorage) that differs from Firestore → regenerate
+        const intendedCareer = careerFromUrl || careerFromStorage;
+        const needsRegenForNewCareer = intendedCareer && existingPath?.targetCareer && intendedCareer !== existingPath.targetCareer;
+
+        if (existingPath && existingPath.nodes?.length > 0 && !needsRegenForNewCareer) {
+          // Load existing path from Firestore and SANITIZE nodes
+          const sanitizedNodes = (existingPath.nodes || []).map((n: any, i: number) => {
+            const safeX = typeof n.coordinates?.x === 'number' && !isNaN(n.coordinates.x) ? n.coordinates.x : typeof n.x === 'number' && !isNaN(n.x) ? n.x : 300 + (i % 3) * 180;
+            const safeY = typeof n.coordinates?.y === 'number' && !isNaN(n.coordinates.y) ? n.coordinates.y : typeof n.y === 'number' && !isNaN(n.y) ? n.y : 100 + i * 140;
+            return {
+              ...n,
+              coordinates: { x: safeX, y: safeY },
+              x: safeX,
+              y: safeY,
+            };
+          });
+
+          localStorage.setItem(careerKey, existingPath.targetCareer);
+          setCareer(existingPath.targetCareer);
+          setNodes(sanitizedNodes);
+          // Restore chat history
+          const savedChat = localStorage.getItem(`chat_${currentUser.uid}`);
+          if (savedChat) {
+            try { setMessages(JSON.parse(savedChat)); } catch {
+              setMessages([{ role: 'ai', content: `Selamat datang kembali! Roadmap ${existingPath.targetCareer}-mu siap. Klik node untuk tandai progress!` }]);
+            }
+          } else {
+            setMessages([{ role: 'ai', content: `Selamat datang kembali! Roadmap ${existingPath.targetCareer}-mu siap. Klik node untuk tandai progress!` }]);
+          }
+          return;
         }
-      } catch (err) {
-        setMessages(prev => [...prev, { role: 'ai', content: 'Gagal membuat roadmap. Coba lagi nanti.' }]);
+
+        // 4. Need to generate — determine career from best available source
+        //    Priority: URL param > localStorage > Firestore AI rec > default
+        let targetCareer = careerFromUrl || careerFromStorage;
+
+        if (!targetCareer) {
+          // Last resort: check Firestore AI recommendation
+          const rec = await getAIRecommendation(currentUser.uid);
+          if (rec) targetCareer = rec.careerTitle;
+        }
+        if (!targetCareer) targetCareer = 'Full-Stack Developer';
+
+        localStorage.setItem(careerKey, targetCareer);
+        setCareer(targetCareer);
+        setGenerating(true);
+        setMessages([{ role: 'ai', content: `Hai! Saya sedang membuatkan roadmap belajar untuk menjadi **${targetCareer}**. Tunggu sebentar...` }]);
+
+        try {
+          const res = await fetch('/api/generate-path', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ career: targetCareer })
+          });
+          const data = await res.json();
+
+          if (data.nodes && Array.isArray(data.nodes) && data.nodes.length > 0) {
+            const pathNodes: SkillPathNode[] = data.nodes.map((n: any, i: number) => {
+              const safeX = typeof n.coordinates?.x === 'number' && !isNaN(n.coordinates.x) ? n.coordinates.x : typeof n.x === 'number' && !isNaN(n.x) ? n.x : 300 + (i % 3) * 180;
+              const safeY = typeof n.coordinates?.y === 'number' && !isNaN(n.coordinates.y) ? n.coordinates.y : typeof n.y === 'number' && !isNaN(n.y) ? n.y : 100 + i * 140;
+
+              return {
+                id: n.id || `node-${i}`,
+                title: n.title || n.label || `Step ${i + 1}`,
+                description: n.description || '',
+                estimatedHours: n.estimatedHours || 10,
+                duration: n.duration || '2 Minggu',
+                difficulty: n.difficulty || 'Menengah',
+                icon_type: n.icon_type || 'code',
+                prerequisites: n.prerequisites || [],
+                status: n.status || (i === 0 ? 'active' : 'locked'),
+                coordinates: { x: safeX, y: safeY },
+                connections: n.connections || [],
+                x: safeX,
+                y: safeY,
+              };
+            });
+            setNodes(pathNodes);
+            setMessages(prev => [...prev, { role: 'ai', content: `Roadmap **${targetCareer}** sudah jadi! Ada ${pathNodes.length} tahapan yang perlu kamu kuasai. Mulai dari yang paling atas ya!` }]);
+            // Fire and forget to prevent blocking the UI
+            saveSkillPath(currentUser.uid, targetCareer, pathNodes).catch(e => console.error("Path save background error", e));
+          } else {
+             throw new Error(data.error || "Materi roadmap tidak ditemukan.");
+          }
+        } catch (err: any) {
+          setMessages(prev => [...prev, { role: 'ai', content: `Gagal membuat roadmap: ${err.message || 'Coba lagi beberapa saat lagi.'}` }]);
+        } finally {
+          setGenerating(false);
+        }
+      } finally {
+        setLoading(false);
       }
-      setGenerating(false);
-      setLoading(false);
     }
     load();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -182,7 +210,7 @@ export default function SkillPathsPage() {
       const res = await fetch('/api/generate-path', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ career, question: userMsg })
+        body: JSON.stringify({ career, question: userMsg, history: messages })
       });
       const data = await res.json();
 
@@ -207,32 +235,40 @@ export default function SkillPathsPage() {
           });
           const regenData = await regenRes.json();
 
-          if (regenData.nodes && Array.isArray(regenData.nodes)) {
-            const pathNodes: SkillPathNode[] = regenData.nodes.map((n: any, i: number) => ({
-              id: n.id || `node-${i}`,
-              title: n.title || n.label || `Step ${i + 1}`,
-              description: n.description || '',
-              estimatedHours: n.estimatedHours || 10,
-              duration: n.duration || '2 Minggu',
-              difficulty: n.difficulty || 'Menengah',
-              icon_type: n.icon_type || 'code',
-              prerequisites: n.prerequisites || [],
-              status: n.status || (i === 0 ? 'active' : 'locked'),
-              coordinates: n.coordinates || { x: 300 + (i % 3) * 180, y: 100 + Math.floor(i / 2) * 150 },
-              connections: n.connections || [],
-              x: n.coordinates?.x || n.x || 300,
-              y: n.coordinates?.y || n.y || 100 + i * 140,
-            }));
+          if (regenData.nodes && Array.isArray(regenData.nodes) && regenData.nodes.length > 0) {
+            const pathNodes: SkillPathNode[] = regenData.nodes.map((n: any, i: number) => {
+              const safeX = typeof n.coordinates?.x === 'number' && !isNaN(n.coordinates.x) ? n.coordinates.x : typeof n.x === 'number' && !isNaN(n.x) ? n.x : 300 + (i % 3) * 180;
+              const safeY = typeof n.coordinates?.y === 'number' && !isNaN(n.coordinates.y) ? n.coordinates.y : typeof n.y === 'number' && !isNaN(n.y) ? n.y : 100 + i * 140;
+
+              return {
+                id: n.id || `node-${i}`,
+                title: n.title || n.label || `Step ${i + 1}`,
+                description: n.description || '',
+                estimatedHours: n.estimatedHours || 10,
+                duration: n.duration || '2 Minggu',
+                difficulty: n.difficulty || 'Menengah',
+                icon_type: n.icon_type || 'code',
+                prerequisites: n.prerequisites || [],
+                status: n.status || (i === 0 ? 'active' : 'locked'),
+                coordinates: { x: safeX, y: safeY },
+                connections: n.connections || [],
+                x: safeX,
+                y: safeY,
+              };
+            });
             setNodes(pathNodes);
+            setMessages(prev => [...prev, { role: 'ai', content: `Roadmap **${newCareer}** sudah jadi! Ada ${pathNodes.length} tahapan. Mulai dari yang paling atas!` }]);
             if (currentUser?.uid) {
               saveSkillPath(currentUser.uid, newCareer, pathNodes).catch(console.warn);
             }
-            setMessages(prev => [...prev, { role: 'ai', content: `Roadmap **${newCareer}** sudah jadi! Ada ${pathNodes.length} tahapan. Mulai dari yang paling atas!` }]);
+          } else {
+             throw new Error(regenData.error || "Materi roadmap tidak ditemukan.");
           }
-        } catch {
-          setMessages(prev => [...prev, { role: 'ai', content: 'Gagal membuat roadmap baru. Coba lagi nanti.' }]);
+        } catch (err: any) {
+          setMessages(prev => [...prev, { role: 'ai', content: `Gagal membuat roadmap baru: ${err.message || 'Coba lagi beberapa saat lagi.'}` }]);
+        } finally {
+           setGenerating(false);
         }
-        setGenerating(false);
       } else if (!data.answer) {
         setMessages(prev => [...prev, { role: 'ai', content: 'Maaf, saya tidak bisa mendeteksi jawaban. Coba tanyakan lagi.' }]);
       }
@@ -245,6 +281,7 @@ export default function SkillPathsPage() {
   // Auto-save chat messages to localStorage & scroll to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    mobileChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     if (currentUser?.uid && messages.length > 0) {
       try { localStorage.setItem(`chat_${currentUser.uid}`, JSON.stringify(messages.slice(-50))); } catch {}
     }
@@ -262,6 +299,7 @@ export default function SkillPathsPage() {
     icon_type: n.icon_type || 'code',
     connections: n.connections || [],
     estimatedHours: n.estimatedHours,
+    learning_resources: n.learning_resources,
   }));
 
   if (!currentUser) {
@@ -282,94 +320,85 @@ export default function SkillPathsPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen text-slate-900">
-      <Navbar />
-      <div className="flex h-[calc(100vh-80px)] pt-20">
-        {/* Left: Chat Panel */}
-        <div className="w-full lg:w-[30%] flex flex-col border-r border-slate-200/50 bg-white/50 backdrop-blur-2xl">
-          <div className="p-4 border-b border-slate-200/50 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg">
-              <Bot size={20} className="text-white" />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-sm text-slate-900 tracking-tight">AI Consultant</h3>
-              <span className="text-[10px] text-emerald-600 flex items-center gap-1 font-bold">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Online
-              </span>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {messages.map((msg, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(
-                  "max-w-[90%] rounded-[1.25rem] px-4 py-3 text-sm",
-                  msg.role === 'ai'
-                    ? "bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] mr-auto text-slate-700 rounded-bl-lg prose prose-sm prose-slate prose-p:leading-relaxed prose-a:text-amber-600 max-w-none"
-                    : "bg-slate-900 text-white ml-auto rounded-br-lg shadow-md"
-                )}
-              >
-                {msg.role === 'ai' ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {typeof msg.content === 'string' ? msg.content : String(msg.content)}
-                  </ReactMarkdown>
-                ) : (
-                  msg.content
-                )}
-              </motion.div>
-            ))}
-            {chatLoading && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="max-w-[70%] bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] mr-auto rounded-[1.25rem] rounded-bl-lg px-4 py-4 flex items-center gap-2"
-              >
-                <div className="flex gap-1.5">
-                  <motion.div className="w-2 h-2 rounded-full bg-slate-300" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut', delay: 0 }} />
-                  <motion.div className="w-2 h-2 rounded-full bg-slate-300" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut', delay: 0.2 }} />
-                  <motion.div className="w-2 h-2 rounded-full bg-slate-400" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut', delay: 0.4 }} />
-                </div>
-              </motion.div>
+  const renderChatContent = (isMobile: boolean) => (
+    <>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+        {messages.map((msg, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(
+              "max-w-[90%] rounded-[1.25rem] px-4 py-3 text-sm",
+              msg.role === 'ai'
+                ? "bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] mr-auto text-slate-700 rounded-bl-lg prose prose-sm prose-slate prose-p:leading-relaxed prose-a:text-amber-600 max-w-none"
+                : "bg-slate-900 text-white ml-auto rounded-br-lg shadow-md"
             )}
-            <div ref={chatEndRef} />
-          </div>
+          >
+            {msg.role === 'ai' ? (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {typeof msg.content === 'string' ? msg.content : String(msg.content)}
+              </ReactMarkdown>
+            ) : (
+              msg.content
+            )}
+          </motion.div>
+        ))}
+        {chatLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-[70%] bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] mr-auto rounded-[1.25rem] rounded-bl-lg px-4 py-4 flex items-center gap-2"
+          >
+           <div className="flex gap-1.5">
+             <motion.div className="w-2 h-2 rounded-full bg-slate-300" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut', delay: 0 }} />
+             <motion.div className="w-2 h-2 rounded-full bg-slate-300" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut', delay: 0.2 }} />
+             <motion.div className="w-2 h-2 rounded-full bg-slate-400" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, ease: 'easeInOut', delay: 0.4 }} />
+           </div>
+          </motion.div>
+        )}
+        <div ref={isMobile ? mobileChatEndRef : chatEndRef} />
+      </div>
 
-          <div className="p-4 border-t border-slate-200/50">
-            <div className="flex gap-2">
-              <input
-                value={inputMsg}
-                onChange={(e) => setInputMsg(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Tanya tentang roadmap..."
-                className="flex-1 bg-white rounded-xl px-4 py-3 text-sm font-medium outline-none placeholder:text-slate-400 border border-slate-200 focus:border-amber-400 focus:ring-4 focus:ring-amber-500/10 transition-all shadow-sm text-slate-900"
-              />
-              <Button onClick={handleSendMessage} disabled={chatLoading} className="bg-slate-900 hover:bg-slate-800 rounded-xl px-4 shadow-md text-white">
-                <Send size={16} />
-              </Button>
-            </div>
-          </div>
+      <div className="p-4 border-t border-slate-200/50 shrink-0 relative bg-white/80 backdrop-blur-lg">
+        <div className="flex gap-2 relative z-10">
+          <input
+            value={inputMsg}
+            onChange={(e) => setInputMsg(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+            placeholder="Tanya info atau link materi..."
+            className="flex-1 bg-white rounded-xl px-4 py-3 text-sm font-medium outline-none placeholder:text-slate-400 border border-slate-200 focus:border-amber-400 focus:ring-4 focus:ring-amber-500/10 transition-all shadow-sm text-slate-900"
+          />
+          <Button onClick={handleSendMessage} disabled={chatLoading} className="bg-slate-900 hover:bg-slate-800 rounded-xl px-4 shadow-md text-white">
+            <Send size={16} />
+          </Button>
         </div>
+      </div>
+    </>
+  );
 
-        {/* Right: Neural Roadmap Canvas */}
-        <div className="hidden lg:flex flex-1 relative">
+  return (
+    <div className="h-screen text-slate-900 flex flex-col overflow-hidden bg-[radial-gradient(at_0%_0%,_#fef0e6_0%,_transparent_50%),_radial-gradient(at_100%_0%,_#fde4d4_0%,_transparent_50%),_radial-gradient(at_50%_100%,_#fef5ee_0%,_transparent_50%)]">
+      <div className="shrink-0">
+        <Navbar />
+      </div>
+      <div className="flex flex-1 mt-20 p-2 sm:p-4 lg:p-6 gap-2 sm:gap-4 lg:gap-6 overflow-hidden relative">
+        
+        {/* Neural Roadmap Canvas - GLASS CARD ON THE RIGHT */}
+        <div className="flex-1 relative bg-white/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/50 shadow-2xl overflow-hidden self-stretch transition-all duration-500 hover:shadow-amber-500/5">
           {loading || generating ? (
-            <div className="w-full p-8">
-              <div className="flex items-center justify-between mb-8">
+            <div className="absolute inset-0 p-8 flex flex-col animate-pulse">
+              <div className="flex items-center justify-between mb-8 opacity-50">
                 <div>
-                  <Skeleton className="h-8 w-48 mb-2 bg-slate-200/50 rounded-xl" />
-                  <Skeleton className="h-4 w-32 bg-slate-200/50 rounded-md" />
+                  <div className="h-8 w-48 mb-2 bg-slate-300/30 rounded-xl" />
+                  <div className="h-4 w-32 bg-slate-300/20 rounded-md" />
                 </div>
-                <Skeleton className="h-6 w-16 rounded-full bg-slate-200/50" />
+                <div className="h-6 w-16 rounded-full bg-slate-300/20" />
               </div>
-              <div className="flex items-center justify-center h-[400px]">
+              <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
-                  <div className="w-12 h-12 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mx-auto mb-4" />
-                  <p className="text-sm font-bold text-slate-500">Membangun Neural Roadmap...</p>
-                  <p className="text-xs text-slate-400 mt-1">AI sedang merancang jalur belajarmu</p>
+                  <div className="w-12 h-12 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-sm font-bold text-slate-400">Menyusun Neural Roadmap...</p>
                 </div>
               </div>
             </div>
@@ -381,6 +410,59 @@ export default function SkillPathsPage() {
             />
           )}
         </div>
+
+        {/* Desktop Chat Panel - GLASS CARD ON THE LEFT */}
+        <div className="hidden lg:flex w-[400px] flex-col bg-white/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/50 shadow-2xl lg:order-first relative overflow-hidden self-stretch transition-all duration-500 hover:shadow-amber-500/5">
+          <div className="p-5 border-b border-white/20 flex items-center gap-3 shrink-0 bg-white/30 backdrop-blur-md">
+            <div className="w-11 h-11 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <Bot size={22} className="text-white relative z-10" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-slate-900 tracking-tight">AI Consultant</h3>
+              <span className="text-[10px] text-emerald-600 flex items-center gap-1.5 font-black uppercase tracking-widest">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" /> Online
+              </span>
+            </div>
+          </div>
+          <div className="flex-1 flex flex-col min-h-0">
+            {renderChatContent(false)}
+          </div>
+        </div>
+
+        {/* Mobile Floating Chat Popup */}
+        <div className={cn(
+            "lg:hidden absolute bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-2xl rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-slate-200 overflow-hidden flex flex-col min-h-0 transition-transform duration-300",
+            isMobileChatOpen ? "h-[75dvh] translate-y-0" : "h-[75dvh] translate-y-full"
+        )}>
+          <div className="p-4 border-b border-slate-200/50 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">
+                <Bot size={20} className="text-white" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900 tracking-tight">AI Consultant</h3>
+                <span className="text-[10px] text-emerald-600 flex items-center gap-1 font-bold">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Online
+                </span>
+              </div>
+            </div>
+            <button onClick={() => setIsMobileChatOpen(false)} className="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors">
+               Tutup
+            </button>
+          </div>
+          {renderChatContent(true)}
+        </div>
+
+        {/* Mobile Toggle Button (when chat is closed) */}
+        {!isMobileChatOpen && (
+          <Button 
+            onClick={() => setIsMobileChatOpen(true)}
+            className="lg:hidden fixed bottom-6 left-6 z-40 w-14 h-14 rounded-full shadow-[0_10px_30px_rgba(245,158,11,0.4)] bg-amber-500 hover:bg-amber-600 text-white p-0 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+          >
+            <Sparkles size={28} />
+          </Button>
+        )}
       </div>
     </div>
   );

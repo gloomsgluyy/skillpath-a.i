@@ -3,14 +3,14 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
-import { Compass, Brain, LayoutList, BookOpen, FolderKanban, LogOut } from 'lucide-react';
+import { Compass, Brain, LayoutList, BookOpen, FolderKanban, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { getAIRecommendation } from '@/lib/firestore';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 
 const NAV_LINKS = [
   { label: 'Explore Careers', href: '/explore', icon: <Compass size={14} /> },
-  { label: 'Discover Yourself', href: '/discover', icon: <Brain size={14} /> },
   { label: 'Skill Paths', href: '/paths', icon: <LayoutList size={14} /> },
   { label: 'Learning Journey', href: '/journey', icon: <BookOpen size={14} /> },
   { label: 'Projects', href: '/projects', icon: <FolderKanban size={14} /> },
@@ -58,22 +58,68 @@ export function Navbar() {
 
         {/* Navigation Links - ONLY SHOW IF LOGGED IN */}
         {currentUser && (
-          <div className="hidden xl:flex items-center gap-4">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className="flex items-center gap-2 px-3 py-1.5 text-[13px] font-bold text-slate-600 hover:text-slate-900 transition-all group"
-              >
-                <span className="text-slate-400 group-hover:text-amber-500 transition-colors">{link.icon}</span>
-                {link.label}
-              </Link>
-            ))}
-          </div>
+          <>
+            <div className="hidden xl:flex items-center gap-4">
+              {NAV_LINKS.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="flex items-center gap-2 px-3 py-1.5 text-[13px] font-bold text-slate-600 hover:text-slate-900 transition-all group"
+                >
+                  <span className="text-slate-400 group-hover:text-amber-500 transition-colors">{link.icon}</span>
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+
+            {/* Mobile Navigation */}
+            <div className="xl:hidden flex items-center ml-2">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <button className="p-2 text-slate-600 hover:text-amber-500 transition-colors" aria-label="Menu">
+                    <Menu size={20} />
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[300px] border-l-white/40 bg-white/95 backdrop-blur-3xl pt-12">
+                  <SheetTitle className="sr-only">Navigasi Utama</SheetTitle>
+                  <SheetDescription className="sr-only">Menu navigasi aplikasi SkillPath</SheetDescription>
+                  <div className="flex flex-col gap-4">
+                    {NAV_LINKS.map(link => (
+                      <Link
+                        key={link.label}
+                        href={link.href}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-amber-50 text-slate-700 hover:text-amber-600 font-bold transition-all"
+                      >
+                        <div className="text-amber-500">{link.icon}</div>
+                        {link.label}
+                      </Link>
+                    ))}
+                    <div className="h-px bg-slate-200/60 my-2" />
+                    <Link href="/profile" onClick={() => (document.querySelector('[data-state="open"]') as HTMLElement)?.click()} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-slate-700 font-bold transition-all">
+                      <img src={currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.email}`} alt="Avatar" className="w-6 h-6 rounded-full border border-slate-200" />
+                      <span>{currentUser.displayName || 'User Profile'}</span>
+                    </Link>
+                    <button onClick={() => {
+                        const dialog = document.getElementById('onboarding-modal') as HTMLDialogElement;
+                        if (dialog) dialog.showModal();
+                        (document.querySelector('[data-state="open"]') as HTMLElement)?.click();
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-amber-50 text-amber-600 font-bold transition-all text-left"
+                    >
+                      <Brain size={18} /> Personalisasi Ulang
+                    </button>
+                    <button onClick={() => { logout(); (document.querySelector('[data-state="open"]') as HTMLElement)?.click(); }} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 text-red-500 font-bold transition-all text-left">
+                      <LogOut size={18} /> Keluar
+                    </button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          </>
         )}
 
         {/* Authentication CTA */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="hidden xl:flex items-center gap-3 shrink-0">
           {currentUser ? (
             <div className="flex items-center gap-2">
               <button

@@ -155,11 +155,24 @@ export default function ExploreCareers() {
 
   // Compute match scores and sort
   const scoredCareers = useMemo(() => {
-    return CAREERS.map(c => ({
-      ...c,
-      matchScore: computeMatchScore(c, userProfile),
-    })).sort((a, b) => b.matchScore - a.matchScore);
-  }, [userProfile]);
+    return CAREERS.map(c => {
+      let score = computeMatchScore(c, userProfile);
+      
+      // Force high match for AI Result
+      if (aiResult && (c.title.toLowerCase().includes(aiResult.careerTitle.toLowerCase()) || aiResult.careerTitle.toLowerCase().includes(c.title.toLowerCase()))) {
+        score = aiResult.matchScore; 
+      }
+      // Force high match if user explicitly saved target career
+      else if (userProfile?.targetCareer && (c.title.toLowerCase().includes(userProfile.targetCareer.toLowerCase()) || userProfile.targetCareer.toLowerCase().includes(c.title.toLowerCase()))) {
+        score = Math.max(score, 90);
+      }
+
+      return {
+        ...c,
+        matchScore: score,
+      };
+    }).sort((a, b) => b.matchScore - a.matchScore);
+  }, [userProfile, aiResult]);
 
   // Filter
   const filteredCareers = useMemo(() => {
@@ -505,14 +518,14 @@ export default function ExploreCareers() {
                 </div>
               </div>
 
-              <div className="p-8 border-t border-slate-200 bg-white">
-                <Button
+              <div className="p-6 border-t border-slate-200 bg-white shrink-0">
+                <button
                   onClick={() => router.push(`/paths?career=${selectedCareer.id}`)}
-                  className="w-full h-14 text-base font-black uppercase tracking-widest bg-[#5D1636] hover:bg-[#4a112b] text-white rounded-2xl shadow-[0_4px_20px_rgba(93,22,54,0.4)] relative overflow-hidden group"
+                  className="w-full min-h-[56px] py-4 px-4 flex items-center justify-center text-sm sm:text-base font-black uppercase tracking-wider bg-[#5D1636] hover:bg-[#4a112b] text-white rounded-2xl shadow-xl relative overflow-hidden group transition-all active:scale-[0.98]"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                  Buat Learning Journey
-                </Button>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+                  <span className="relative z-10 text-center">Buat Learning Journey</span>
+                </button>
               </div>
             </>
           )}

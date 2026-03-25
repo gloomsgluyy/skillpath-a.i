@@ -131,7 +131,7 @@ function CareerMindMap() {
         <div className="w-[52px] h-[52px] rounded-[1.1rem] bg-gradient-to-br from-amber-100 to-amber-200 shadow-[0_8px_20px_rgba(251,146,60,0.25)] border-2 border-amber-300/40 flex items-center justify-center">
           <Compass size={26} className="text-amber-800" />
         </div>
-        <span className="mt-1.5 text-[10px] font-black text-slate-800 tracking-tight italic">Discover Yourself</span>
+        <span className="mt-1.5 text-[10px] font-black text-slate-800 tracking-tight italic">Your Journey</span>
       </motion.div>
 
       {/* ── Branch Node 1 (Cloud) ── */}

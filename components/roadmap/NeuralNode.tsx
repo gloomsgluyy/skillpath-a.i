@@ -22,6 +22,7 @@ interface NeuralNodeData {
   icon_type: string;
   connections: string[];
   estimatedHours?: number;
+  learning_resources?: { title: string; url: string; type: string }[];
 }
 
 interface Props {
