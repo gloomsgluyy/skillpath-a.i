@@ -54,7 +54,6 @@ export default function ExploreCareers() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // AI State
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<{
     careerTitle: string;
@@ -78,7 +77,6 @@ export default function ExploreCareers() {
     return null;
   });
 
-  // Load user profile for matching (Fallback if not picked up by initial state)
   useEffect(() => {
     if (!userProfile) {
       const storedData = localStorage.getItem('skillpath_onboarding_data');
@@ -90,15 +88,12 @@ export default function ExploreCareers() {
     }
   }, [userProfile]);
 
-  // Load saved AI recommendation from Firestore or trigger new one
   useEffect(() => {
     const showAi = searchParams.get('showAiResult');
 
     async function loadOrFetchRecommendation() {
-      // 1. If we are explicitly told to fetch a new AI result
       if (showAi && userProfile && !aiLoading) {
         setAiLoading(true);
-        // Clear any old UI state
         setAiResult(null); 
         try {
           const res = await fetch('/api/recommend', {
@@ -110,23 +105,19 @@ export default function ExploreCareers() {
           if (result.recommendations && Array.isArray(result.recommendations)) {
             setAiOptions(result.recommendations);
           } else if (result.careerTitle) {
-            // Fallback just in case Groq hallucinates the old format
             setAiResult(result);
           }
         } catch (err) {
           console.warn("AI Fetch Error:", err);
         } finally {
           setAiLoading(false);
-          // Remove param from URL so it doesn't refetch on reload
           window.history.replaceState({}, '', '/explore');
         }
         return;
       }
 
-      // 2. If we already have a result loaded (and not forcing a new fetch), do nothing
       if (aiResult) return;
 
-      // 3. Try loading from Firestore first if user is logged in
       if (currentUser?.uid) {
         const saved = await getAIRecommendation(currentUser.uid);
         if (saved) {
@@ -140,11 +131,9 @@ export default function ExploreCareers() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, userProfile, currentUser]);
 
-  // Save AI result to Firestore once we have BOTH the result and the user ID
   useEffect(() => {
     if (aiResult && currentUser?.uid) {
       localStorage.setItem(`skillpath_career_${currentUser.uid}`, aiResult.careerTitle);
-      // Check if it's already saved to prevent infinite writes
       getAIRecommendation(currentUser.uid).then(saved => {
         if (!saved || saved.careerTitle !== aiResult.careerTitle) {
           saveAIRecommendation(currentUser.uid, aiResult).catch(console.error);
@@ -153,16 +142,13 @@ export default function ExploreCareers() {
     }
   }, [aiResult, currentUser]);
 
-  // Compute match scores and sort
   const scoredCareers = useMemo(() => {
     return CAREERS.map(c => {
       let score = computeMatchScore(c, userProfile);
       
-      // Force high match for AI Result
       if (aiResult && (c.title.toLowerCase().includes(aiResult.careerTitle.toLowerCase()) || aiResult.careerTitle.toLowerCase().includes(c.title.toLowerCase()))) {
         score = aiResult.matchScore; 
       }
-      // Force high match if user explicitly saved target career
       else if (userProfile?.targetCareer && (c.title.toLowerCase().includes(userProfile.targetCareer.toLowerCase()) || userProfile.targetCareer.toLowerCase().includes(c.title.toLowerCase()))) {
         score = Math.max(score, 90);
       }
@@ -174,7 +160,6 @@ export default function ExploreCareers() {
     }).sort((a, b) => b.matchScore - a.matchScore);
   }, [userProfile, aiResult]);
 
-  // Filter
   const filteredCareers = useMemo(() => {
     let results = scoredCareers;
     if (selectedCategory !== "Semua") {
@@ -278,9 +263,7 @@ export default function ExploreCareers() {
                                   setAiResult(opt);
                                   setAiOptions(null);
                                   if (currentUser?.uid) {
-                                    // Save career to localStorage so paths/journey pick it up
                                     localStorage.setItem(`skillpath_career_${currentUser.uid}`, opt.careerTitle);
-                                    // Also save to user profile in Firestore
                                     saveUserProfile(currentUser.uid, { targetCareer: opt.careerTitle } as any).catch(console.warn);
                                   }
                                 }}

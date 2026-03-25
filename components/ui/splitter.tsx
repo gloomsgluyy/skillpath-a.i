@@ -272,7 +272,6 @@ function Splitter({
   const isRightNearCollapse =
     leftWidth >= 100 - snapThreshold && leftWidth < 99.9;
 
-  // collect derived flags into a stable object
   const handleProps = React.useMemo(
     () => ({
       onMouseDown: handleMouseDown,

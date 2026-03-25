@@ -8,7 +8,6 @@ interface Props {
 }
 
 export const ConnectionLine = ({ start, end, status }: Props) => {
-  // S-curve Bezier between two points
   const midX = (start.x + end.x) / 2;
   const path = `M ${start.x} ${start.y} C ${midX} ${start.y}, ${midX} ${end.y}, ${end.x} ${end.y}`;
 

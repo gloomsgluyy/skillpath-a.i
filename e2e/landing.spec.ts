@@ -6,7 +6,6 @@ test.describe('Landing Page', () => {
   });
 
   test('renders hero section with CTA', async ({ page }) => {
-    // Check CTA button
     const ctaButton = page.locator('button:has-text("Mulai Eksplorasi")');
     await expect(ctaButton).toBeVisible({ timeout: 10000 });
   });
@@ -17,11 +16,9 @@ test.describe('Landing Page', () => {
   });
 
   test('renders feature bento cards', async ({ page }) => {
-    // Scroll to bento section
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
     await page.waitForTimeout(1000);
 
-    // Check for the AI chat card
     await expect(page.locator('text=SkillPath AI').first()).toBeVisible();
   });
 
@@ -29,7 +26,6 @@ test.describe('Landing Page', () => {
     const ctaButton = page.locator('button:has-text("Mulai Eksplorasi")');
     await ctaButton.click();
 
-    // Modal should be visible
     const modal = page.locator('dialog#onboarding-modal');
     await expect(modal).toBeVisible({ timeout: 5000 });
   });
@@ -43,7 +39,6 @@ test.describe('Landing Page', () => {
 test.describe('Onboarding Modal Flow', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    // Open the onboarding modal
     const ctaButton = page.locator('button:has-text("Mulai Eksplorasi")');
     await ctaButton.click();
     await page.waitForTimeout(500);
@@ -53,12 +48,10 @@ test.describe('Onboarding Modal Flow', () => {
     const modal = page.locator('dialog#onboarding-modal');
     await expect(modal).toBeVisible({ timeout: 5000 });
 
-    // Should show step content — at least "Pendidikan" or similar label
     await expect(modal.locator('text=/pendidikan|langkah|step/i').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('can close modal with outside click or escape', async ({ page }) => {
-    // Press Escape to close dialog
     await page.keyboard.press('Escape');
     const modal = page.locator('dialog#onboarding-modal');
     await expect(modal).not.toBeVisible({ timeout: 3000 });
@@ -69,7 +62,6 @@ test.describe('Navigation', () => {
   test('navbar links navigate correctly', async ({ page }) => {
     await page.goto('/');
 
-    // Check that the page loaded
     await expect(page).toHaveTitle(/SkillPath/);
   });
 

@@ -1,14 +1,12 @@
 import { getUserProfile, saveUserProfile, incrementUserPoints } from '@/lib/firestore';
 import { getDoc, setDoc, updateDoc, doc } from 'firebase/firestore';
 
-// Mock Firebase config
 jest.mock('@/lib/firebase', () => ({
   db: {},
   app: {},
   auth: {},
 }));
 
-// Mock Firestore functions
 jest.mock('firebase/firestore', () => {
   const original = jest.requireActual('firebase/firestore');
   return {

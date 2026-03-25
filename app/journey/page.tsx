@@ -30,8 +30,6 @@ export default function LearningJourney() {
     async function load() {
       if (!currentUser?.uid) { setLoading(false); return; }
 
-      // Prevent double-fire (React StrictMode) — AFTER auth check
-      // so early runs with null user don't block real runs
       if (loadedRef.current) return;
       loadedRef.current = true;
 
@@ -39,10 +37,8 @@ export default function LearningJourney() {
         const careerKey = `skillpath_career_${currentUser.uid}`;
         const currentCareer = localStorage.getItem(careerKey) || '';
 
-        // Check Firestore for existing journey
         const existing = await getUserJourney(currentUser.uid);
 
-        // If existing journey matches current career → load it directly
         const careerChanged = currentCareer && existing?.targetCareer && currentCareer !== existing.targetCareer;
 
         if (existing && existing.tasks?.length > 0 && !careerChanged) {
@@ -53,7 +49,6 @@ export default function LearningJourney() {
           return;
         }
 
-        // No journey saved or career changed → determine career and generate
         let targetCareer = currentCareer || '';
         if (!targetCareer) {
           const rec = await getAIRecommendation(currentUser.uid);

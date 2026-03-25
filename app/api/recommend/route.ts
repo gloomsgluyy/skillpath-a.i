@@ -45,7 +45,6 @@ Format output WAJIB JSON:
       "reason": "Alasan singkat kenapa cocok...",
       "skills": ["Skill A", "Skill B", "Skill C"]
     },
-    // tambahkan 2 rekomendasi lagi dengan format persis sama
   ]
 }
 HANYA kembalikan JSON murni, jangan ada teks lain. DILARANG KERAS MENGGUNAKAN EMOJI.`;

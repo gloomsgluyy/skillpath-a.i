@@ -29,7 +29,6 @@ test.describe('Protected Pages (Unauthenticated)', () => {
     const backButton = page.locator('button:has-text("Kembali")');
     await backButton.click();
     
-    // Should navigate to home
     await expect(page).toHaveURL('/', { timeout: 5000 });
   });
 });
@@ -39,7 +38,6 @@ test.describe('API Documentation Page', () => {
     await page.goto('/api-doc');
     await page.waitForTimeout(3000);
     
-    // Should render Swagger UI or API documentation content
     const body = await page.textContent('body');
     expect(body).toBeTruthy();
   });

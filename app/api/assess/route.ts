@@ -18,14 +18,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Map answers to questions for context
     const mappedAnswers = DISCOVER_QUESTIONS.map((q, index) => ({
       category: q.category,
       question: q.text,
       score: answers[index], // 1 to 5 scale
     }));
 
-    // Calculate sum per category just to guide the prompt
     const categoryScores = mappedAnswers.reduce((acc, curr) => {
       acc[curr.category] = (acc[curr.category] || 0) + curr.score;
       return acc;

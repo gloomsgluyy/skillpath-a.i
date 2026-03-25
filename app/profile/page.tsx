@@ -27,13 +27,10 @@ export default function ProfileDashboard() {
     async function load() {
       if (!currentUser?.uid) { setLoading(false); return; }
 
-      // Guard after auth check to avoid blocking real loads
       if (loadedRef.current) return;
       loadedRef.current = true;
 
       try {
-        // getUserStats already calls getUserProfile internally, so we
-        // avoid a duplicate call by fetching profile + rec separately
         const [userStats, userProfile, aiRec] = await Promise.all([
           getUserStats(currentUser.uid),
           getUserProfile(currentUser.uid),

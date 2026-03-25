@@ -124,7 +124,6 @@ export function Navbar() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  // Clear old data so fresh onboarding starts
                   localStorage.removeItem('skillpath_onboarding_data');
                   const dialog = document.getElementById('onboarding-modal') as HTMLDialogElement;
                   if (dialog) dialog.showModal();

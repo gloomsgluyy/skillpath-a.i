@@ -1,7 +1,6 @@
 import { db } from './firebase';
 import { doc, setDoc, getDoc, updateDoc, collection, getDocs, query, where, increment, serverTimestamp } from 'firebase/firestore';
 
-// ===================== PERSISTENT CACHE (localStorage) =====================
 const CACHE_TTL = 1000 * 60 * 60 * 24 * 7; // 7 days — localStorage is primary persistence, Firestore syncs when available
 
 function getCached<T>(key: string): T | null {
@@ -17,7 +16,6 @@ function getCached<T>(key: string): T | null {
 }
 
 function setCached(key: string, data: any) {
-  // CRITICAL: Never cache null/undefined — it causes 'cache poisoning'
   if (typeof window === 'undefined' || data == null) return;
   try {
     localStorage.setItem(`cache_${key}`, JSON.stringify({ data, exp: Date.now() + CACHE_TTL }));
@@ -29,7 +27,6 @@ function invalidateCache(key: string) {
   try { localStorage.removeItem(`cache_${key}`); } catch {}
 }
 
-// Robust read helper: tries server, falls back to cache instantly on offline/timeout errors
 async function getDocWithRetry(ref: any): Promise<any> {
   try {
     return await Promise.race([
@@ -37,7 +34,6 @@ async function getDocWithRetry(ref: any): Promise<any> {
       new Promise((_, reject) => setTimeout(() => reject(new Error('offline')), 3000))
     ]);
   } catch (err: any) {
-    // Try reading from local Firestore cache on timeout/offline
     try {
       const { getDocFromCache } = await import('firebase/firestore');
       return await getDocFromCache(ref);
@@ -47,14 +43,12 @@ async function getDocWithRetry(ref: any): Promise<any> {
   }
 }
 
-// Robust write helper: retries maximum once on offline errors
 async function writeWithRetry(writeFn: () => Promise<void>): Promise<void> {
   try {
     await writeFn();
   } catch (err: any) {
     const isOffline = err?.message?.includes('offline') || err?.code === 'unavailable';
     if (isOffline) {
-      // Small delay then one last try
       await new Promise(r => setTimeout(r, 1000));
       await writeFn();
     } else {
@@ -63,7 +57,6 @@ async function writeWithRetry(writeFn: () => Promise<void>): Promise<void> {
   }
 }
 
-// ===================== USER PROFILES =====================
 
 export interface UserProfile {
   uid: string;
@@ -86,13 +79,11 @@ export interface UserProfile {
 export const saveUserProfile = async (uid: string, data: Partial<UserProfile>) => {
   if (!uid) return;
   
-  // ALWAYS save to localStorage first (instant, guaranteed)
   const existing = getCached<UserProfile>(`user_${uid}`) || { uid, points: 0, level: 1, completedTaskCount: 0, completedProjectCount: 0 } as UserProfile;
   const updatedData = { ...existing, ...data, lastLoginAt: new Date().toISOString() };
   if (!existing.createdAt) updatedData.createdAt = new Date().toISOString();
   setCached(`user_${uid}`, updatedData);
 
-  // Then try Firestore in the background
   try {
     const userRef = doc(db, 'users', uid);
     writeWithRetry(async () => {
@@ -151,7 +142,6 @@ export const incrementUserPoints = async (uid: string, amount: number) => {
   } catch (e) { console.error('incrementUserPoints error:', e); }
 };
 
-// ===================== AI RECOMMENDATIONS =====================
 
 export interface AIRecommendation {
   careerTitle: string;
@@ -212,7 +202,6 @@ export const deleteAIRecommendation = async (uid: string) => {
   }
 };
 
-// ===================== ASSESSMENTS =====================
 
 export interface AssessmentResult {
   primaryField: string;
@@ -252,7 +241,6 @@ export const getUserAssessment = async (uid: string) => {
   }
 };
 
-// ===================== SKILL PATHS =====================
 
 export interface SkillPathNode {
   id: string;
@@ -263,7 +251,6 @@ export interface SkillPathNode {
   status: 'locked' | 'active' | 'completed';
   x: number;
   y: number;
-  // Neural Roadmap fields
   coordinates: { x: number; y: number };
   icon_type: string;
   difficulty: string;
@@ -275,9 +262,7 @@ export interface SkillPathNode {
 export const saveSkillPath = async (uid: string, career: string, nodes: SkillPathNode[]) => {
   if (!uid) return;
   const localData = { uid, targetCareer: career, nodes, lastUpdated: new Date().toISOString() };
-  // ALWAYS save to localStorage first (instant, guaranteed)
   setCached(`skillpath_${uid}`, localData);
-  // Then try Firestore in the background (best-effort)
   try {
     const ref = doc(db, 'skillpaths', uid);
     await writeWithRetry(async () => {
@@ -295,11 +280,9 @@ export const saveSkillPath = async (uid: string, career: string, nodes: SkillPat
 export const getSkillPath = async (uid: string) => {
   if (!uid) return null;
   const cacheKey = `skillpath_${uid}`;
-  // Check localStorage first (instant)
   const cached = getCached<any>(cacheKey);
   if (cached) return cached._emptyState ? null : cached;
 
-  // Fall back to Firestore
   try {
     const ref = doc(db, 'skillpaths', uid);
     const snap = await getDocWithRetry(ref);
@@ -315,17 +298,14 @@ export const getSkillPath = async (uid: string) => {
 export const updateSkillPathNode = async (uid: string, nodeId: string, status: 'locked' | 'active' | 'completed') => {
   if (!uid) return;
   try {
-    // Read from localStorage first, then Firestore
     const existing = await getSkillPath(uid);
     if (!existing) return;
 
     const nodes = (existing.nodes || []).map((n: any) => n.id === nodeId ? { ...n, status } : n);
     const updatedData = { ...existing, nodes, lastUpdated: new Date().toISOString() };
 
-    // ALWAYS save to localStorage first (instant, guaranteed)
     setCached(`skillpath_${uid}`, updatedData);
 
-    // Then try Firestore in the background
     try {
       const ref = doc(db, 'skillpaths', uid);
       await writeWithRetry(async () => {
@@ -341,7 +321,6 @@ export const updateSkillPathNode = async (uid: string, nodeId: string, status: '
   }
 };
 
-// ===================== LEARNING JOURNEYS =====================
 
 export interface JourneyTask {
   id: string;
@@ -356,9 +335,7 @@ export interface JourneyTask {
 export const saveUserJourney = async (uid: string, career: string, tasks: JourneyTask[]) => {
   if (!uid) return;
   const localData = { uid, targetCareer: career, tasks, streak: 0, lastCompletedDate: null, lastUpdated: new Date().toISOString() };
-  // ALWAYS save to localStorage first (instant, guaranteed)
   setCached(`journey_${uid}`, localData);
-  // Then try Firestore in the background
   try {
     const ref = doc(db, 'journeys', uid);
     await writeWithRetry(async () => {
@@ -376,11 +353,9 @@ export const saveUserJourney = async (uid: string, career: string, tasks: Journe
 export const getUserJourney = async (uid: string) => {
   if (!uid) return null;
   const cacheKey = `journey_${uid}`;
-  // Check localStorage first (instant)
   const cached = getCached<any>(cacheKey);
   if (cached) return cached._emptyState ? null : cached;
 
-  // Fall back to Firestore
   try {
     const ref = doc(db, 'journeys', uid);
     const snap = await getDocWithRetry(ref);
@@ -396,7 +371,6 @@ export const getUserJourney = async (uid: string) => {
 export const markTaskCompleted = async (uid: string, taskId: string) => {
   if (!uid) return;
   try {
-    // Read current journey from localStorage first, then Firestore
     const existing = await getUserJourney(uid);
     if (!existing) return;
 
@@ -404,7 +378,6 @@ export const markTaskCompleted = async (uid: string, taskId: string) => {
       t.id === taskId ? { ...t, completed: true, completedAt: new Date().toISOString() } : t
     );
 
-    // Streak logic
     const today = new Date().toDateString();
     const lastDate = existing.lastCompletedDate;
     const yesterday = new Date(Date.now() - 86400000).toDateString();
@@ -421,10 +394,8 @@ export const markTaskCompleted = async (uid: string, taskId: string) => {
       lastUpdated: new Date().toISOString(),
     };
 
-    // ALWAYS save to localStorage first (instant, guaranteed)
     setCached(`journey_${uid}`, updatedData);
 
-    // Then try Firestore in the background
     try {
       const ref = doc(db, 'journeys', uid);
       await writeWithRetry(async () => {
@@ -439,7 +410,6 @@ export const markTaskCompleted = async (uid: string, taskId: string) => {
       console.warn('markTaskCompleted firestore error (data saved locally):', e);
     }
 
-    // Background: try to update points
     incrementUserPoints(uid, 15).catch(() => {});
     const userRef = doc(db, 'users', uid);
     writeWithRetry(async () => {
@@ -451,7 +421,6 @@ export const markTaskCompleted = async (uid: string, taskId: string) => {
   }
 };
 
-// ===================== PROJECTS =====================
 
 export interface ProjectEvaluation {
   id: string; // ID unik proyek statis (e.g., 'proj-api-store')
@@ -466,7 +435,6 @@ export interface ProjectEvaluation {
   submittedAt?: any;
 }
 
-// Fungsi untuk mulai mengerjakan proyek
 export const updateProjectStatus = async (uid: string, project: Pick<ProjectEvaluation, 'id' | 'title' | 'skills' | 'status'>) => {
   if (!uid) return;
   try {
@@ -476,12 +444,10 @@ export const updateProjectStatus = async (uid: string, project: Pick<ProjectEval
       ? { ...existingProj, status: project.status }
       : { ...project, status: project.status, startedAt: new Date().toISOString() };
 
-    // Update in local array
     const newArr = existing.filter(p => p.id !== project.id);
     newArr.push(newProj);
     setCached(`projects_${uid}`, newArr);
 
-    // Update in Firestore
     const ref = doc(db, 'projects', `${uid}_${project.id}`);
     await setDoc(ref, {
       uid,
@@ -516,12 +482,10 @@ export const getUserProjects = async (uid: string): Promise<ProjectEvaluation[]>
   if (!uid) return [];
   const cacheKey = `projects_${uid}`;
   const cached = getCached<ProjectEvaluation[]>(cacheKey);
-  // ALWAYS return cache immediately if available, even if empty array!
   if (cached && Array.isArray(cached)) return cached;
 
   try {
     const q = query(collection(db, 'projects'), where('uid', '==', uid));
-    // Check if we can get from cache first (very fast)
     let snap;
     try {
       const { getDocsFromCache } = await import('firebase/firestore');
@@ -532,10 +496,8 @@ export const getUserProjects = async (uid: string): Promise<ProjectEvaluation[]>
         return data;
       }
     } catch {
-      // Cache miss, try server
     }
 
-    // Try server with a short timeout to prevent 15-second hangs
     snap = await Promise.race([
       getDocs(q),
       new Promise((_, reject) => setTimeout(() => reject(new Error('offline')), 3000))
@@ -550,7 +512,6 @@ export const getUserProjects = async (uid: string): Promise<ProjectEvaluation[]>
   }
 };
 
-// ===================== USER STATS AGGREGATION =====================
 
 export const getUserStats = async (uid: string) => {
   if (!uid) return null;

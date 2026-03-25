@@ -59,14 +59,12 @@ export const RoadmapCanvas = ({ nodes, career, onNodeClick }: Props) => {
     onNodeClick(node);
   };
 
-  // Compute canvas bounds from node coordinates with robust defaults
   const validX = nodes.map(n => n.coordinates.x).filter(x => typeof x === 'number' && !isNaN(x));
   const validY = nodes.map(n => n.coordinates.y).filter(y => typeof y === 'number' && !isNaN(y));
 
   const maxX = (validX.length > 0 ? Math.max(...validX) : 800) + 400;
   const maxY = (validY.length > 0 ? Math.max(...validY) : 600) + 400;
 
-  // Timeline Y markers - ensure we only handle valid numbers
   const yValues = [...new Set(validY)].sort((a, b) => a - b);
 
   const completedCount = nodes.filter(n => n.status === 'completed').length;

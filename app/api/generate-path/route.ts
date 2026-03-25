@@ -53,7 +53,6 @@ export async function POST(req: Request) {
     }
 
     if (question) {
-      // Chat mode — detect if user wants to change/rebuild their roadmap
       const chatPrompt = `
 You are an expert AI Career Consultant. The user's current roadmap is for: "${career}".
 The user says: "${question}"
@@ -91,19 +90,15 @@ Respond ONLY in this JSON:
         response_format: { type: 'json_object' },
       });
       const chatResult = JSON.parse(chatCompletion.choices[0]?.message?.content || '{}');
-      // Ensure answer is always a string
       const answer = typeof chatResult.answer === 'string' ? chatResult.answer : JSON.stringify(chatResult.answer || 'Maaf, saya tidak bisa memproses permintaan ini.');
       
-      // Client-side fallback: detect regeneration keywords if AI missed them
       const lowerQ = question.toLowerCase();
       const aiSaysRegen = chatResult.shouldRegenerate === true;
       
-      // Strict exact matching to avoid false positives like "tolong ubah link"
       const strictRegenRegex = /^(ganti karir|buatkan roadmap baru|saya ingin pindah karir menjadi|ubah target karir saya)/;
       const keywordMatch = strictRegenRegex.test(lowerQ);
       const shouldRegenerate = aiSaysRegen || keywordMatch;
       
-      // Extract career from newCareer or fallback to current
       let newCareer = typeof chatResult.newCareer === 'string' && chatResult.newCareer.trim() ? chatResult.newCareer.trim() : '';
       if (shouldRegenerate && !newCareer) {
         newCareer = career; // rebuild same career if no new one specified
@@ -116,7 +111,6 @@ Respond ONLY in this JSON:
       });
     }
 
-    // Roadmap generation mode — Neural Roadmap format
     const prompt = `Buatkan Neural Roadmap untuk seseorang yang ingin menjadi ${career}.
 
 Latar belakang pengguna:
@@ -141,10 +135,8 @@ Tulis dalam Bahasa Indonesia. Jangan gunakan emoji.`;
     let parsedData: any = {};
     
     try {
-      // Attempt 1: Standard parse
       parsedData = JSON.parse(rawContent);
     } catch (e) {
-      // Attempt 2: Extract JSON from markdown or arbitrary text
       const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
@@ -163,7 +155,6 @@ Tulis dalam Bahasa Indonesia. Jangan gunakan emoji.`;
        throw new Error("AI gagal menyusun materi. Silakan coba lagi.");
     }
 
-    // Transform AI output to match expected frontend format
     const transformedNodes = (parsedData.nodes || []).map((n: any, i: number) => ({
       id: n.id || `node-${i}`,
       title: n.label || n.title || `Step ${i + 1}`,
@@ -177,7 +168,6 @@ Tulis dalam Bahasa Indonesia. Jangan gunakan emoji.`;
       coordinates: n.coordinates || { x: 300 + (i % 3) * 180, y: 100 + Math.floor(i / 2) * 150 },
       connections: n.connections || (i < (parsedData.nodes?.length || 0) - 1 ? [(parsedData.nodes[i + 1]?.id || `node-${i + 1}`)] : []),
       learning_resources: n.learning_resources || [],
-      // Legacy compat
       x: n.coordinates?.x || 300 + (i % 3) * 180,
       y: n.coordinates?.y || 100 + Math.floor(i / 2) * 150,
     }));

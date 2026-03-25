@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
-// Initialize Groq Client
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
@@ -10,12 +9,8 @@ export async function POST(req: Request) {
   try {
     const { projectId, userId, githubUrl, demoUrl } = await req.json();
 
-    // 1. (Simulated) Fetch Data from GitHub API
-    // We simulate fetching the repository README for evaluation context.
-    // In a real application, you would make an authenticated fetch to github api.
     const simulatedGithubReadme = `Tugas Proyek Node.js API ${projectId}. Dibuat dengan Express, menangani data secara asinkron menggunakan routing dan best practices. Semua endpoint berjalan baik.`;
 
-    // 2. Evaluasi menggunakan Groq AI (Llama 3 / Mixtral)
     const systemPrompt = `
       Kamu adalah Senior Developer yang mengevaluasi portofolio junior.
       Tugasmu adalah menganalisis kode/deskripsi proyek dan memberikan penilaian yang objektif.
@@ -49,10 +44,7 @@ export async function POST(req: Request) {
     const aiResponseText = chatCompletion.choices[0]?.message?.content || "{}";
     const evaluation = JSON.parse(aiResponseText);
 
-    // We do NOT save DB updates here in backend. 
-    // State architecture persists offline first in client side (via firestore.ts local caching).
 
-    // 4. Send response to frontend to allow gamification UI update
     return NextResponse.json(evaluation);
 
   } catch (error) {

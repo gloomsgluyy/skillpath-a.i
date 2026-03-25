@@ -40,37 +40,28 @@ export default function SkillPathsPage() {
 
   const loadedCareerRef = React.useRef<string | null>(null);
 
-  // Load skill path from Firestore or generate new one
   useEffect(() => {
     const careerParam = searchParams.get('career');
     const loadKey = careerParam || '__default__';
 
     async function load() {
-      // Wait for auth — don't set the guard until we know we have a user
       if (!currentUser?.uid) { setLoading(false); return; }
 
-      // Prevent double-fire for the same career (React StrictMode)
-      // IMPORTANT: This guard is AFTER the auth check so that early runs
-      // with null currentUser don't block subsequent real runs.
       if (loadedCareerRef.current === loadKey) return;
       loadedCareerRef.current = loadKey;
 
       try {
         const careerKey = `skillpath_career_${currentUser.uid}`;
 
-        // 1. Determine the target career from ALL available sources (sync first)
         const careerFromUrl = careerParam || '';
         const careerFromStorage = localStorage.getItem(careerKey) || '';
 
-        // 2. Try Firestore for existing path
         const existingPath = await getSkillPath(currentUser.uid);
 
-        // 3. If user specified a new career (URL or localStorage) that differs from Firestore → regenerate
         const intendedCareer = careerFromUrl || careerFromStorage;
         const needsRegenForNewCareer = intendedCareer && existingPath?.targetCareer && intendedCareer !== existingPath.targetCareer;
 
         if (existingPath && existingPath.nodes?.length > 0 && !needsRegenForNewCareer) {
-          // Load existing path from Firestore and SANITIZE nodes
           const sanitizedNodes = (existingPath.nodes || []).map((n: any, i: number) => {
             const safeX = typeof n.coordinates?.x === 'number' && !isNaN(n.coordinates.x) ? n.coordinates.x : typeof n.x === 'number' && !isNaN(n.x) ? n.x : 300 + (i % 3) * 180;
             const safeY = typeof n.coordinates?.y === 'number' && !isNaN(n.coordinates.y) ? n.coordinates.y : typeof n.y === 'number' && !isNaN(n.y) ? n.y : 100 + i * 140;
@@ -85,7 +76,6 @@ export default function SkillPathsPage() {
           localStorage.setItem(careerKey, existingPath.targetCareer);
           setCareer(existingPath.targetCareer);
           setNodes(sanitizedNodes);
-          // Restore chat history
           const savedChat = localStorage.getItem(`chat_${currentUser.uid}`);
           if (savedChat) {
             try { setMessages(JSON.parse(savedChat)); } catch {
@@ -97,12 +87,9 @@ export default function SkillPathsPage() {
           return;
         }
 
-        // 4. Need to generate — determine career from best available source
-        //    Priority: URL param > localStorage > Firestore AI rec > default
         let targetCareer = careerFromUrl || careerFromStorage;
 
         if (!targetCareer) {
-          // Last resort: check Firestore AI recommendation
           const rec = await getAIRecommendation(currentUser.uid);
           if (rec) targetCareer = rec.careerTitle;
         }
@@ -144,7 +131,6 @@ export default function SkillPathsPage() {
             });
             setNodes(pathNodes);
             setMessages(prev => [...prev, { role: 'ai', content: `Roadmap **${targetCareer}** sudah jadi! Ada ${pathNodes.length} tahapan yang perlu kamu kuasai. Mulai dari yang paling atas ya!` }]);
-            // Fire and forget to prevent blocking the UI
             saveSkillPath(currentUser.uid, targetCareer, pathNodes).catch(e => console.error("Path save background error", e));
           } else {
              throw new Error(data.error || "Materi roadmap tidak ditemukan.");
@@ -182,13 +168,11 @@ export default function SkillPathsPage() {
 
       setNodes(updatedNodes);
 
-      // ALWAYS save the entire updated nodes array to Firestore
       await saveSkillPath(currentUser.uid, career, updatedNodes);
 
       const msg = `Hebat! Kamu sudah menyelesaikan \"${node.title}\". ${nextLocked ? `Selanjutnya: \"${nextLocked.title}\"` : 'Semua tahapan selesai!'}`;
       const newMessages = [...messages, { role: 'ai' as const, content: msg }];
       setMessages(newMessages);
-      // Persist chat history to localStorage
       localStorage.setItem(`chat_${currentUser.uid}`, JSON.stringify(newMessages));
     }
   };
@@ -219,7 +203,6 @@ export default function SkillPathsPage() {
         setMessages(prev => [...prev, { role: 'ai', content: answerText }]);
       }
 
-      // If AI detected user wants to change career → regenerate roadmap
       if (data.shouldRegenerate && data.newCareer) {
         const newCareer = data.newCareer;
         setMessages(prev => [...prev, { role: 'ai', content: `Baik! Saya akan membuatkan roadmap baru untuk **${newCareer}**. Tunggu sebentar...` }]);
@@ -278,7 +261,6 @@ export default function SkillPathsPage() {
     setChatLoading(false);
   };
 
-  // Auto-save chat messages to localStorage & scroll to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     mobileChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -287,7 +269,6 @@ export default function SkillPathsPage() {
     }
   }, [messages, currentUser]);
 
-  // Convert SkillPathNode[] to NeuralNodeData[]
   const neuralNodes: NeuralNodeData[] = nodes.map(n => ({
     id: n.id,
     title: n.title,

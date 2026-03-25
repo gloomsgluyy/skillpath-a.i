@@ -36,12 +36,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithEmail = async (email: string, pass: string, name?: string) => {
     try {
-      // Coba register dulu, atau login
       let userRec;
       try {
         userRec = await signInWithEmailAndPassword(auth, email, pass);
       } catch (e: any) {
-        // Jika belum ada/User Not Found, sekalian buatkan
         if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
           userRec = await createUserWithEmailAndPassword(auth, email, pass);
         } else {
@@ -77,10 +75,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
   const signInWithNickname = async (nickname: string) => {
-    // Generate deterministic virtual credentials based on the nickname
     const safeNick = nickname.toLowerCase().replace(/[^a-z0-9]/g, '');
     const virtualEmail = `${safeNick}@tester.skillpath.ai`;
-    // Consistent virtual password for the testing session
     const virtualPass = `test_pass_${safeNick}`;
     
     return signInWithEmail(virtualEmail, virtualPass, nickname);

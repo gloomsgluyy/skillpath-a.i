@@ -34,7 +34,6 @@ export default function ProjectsPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Slide-over state
   const [selectedProject, setSelectedProject] = useState<typeof LAB_PROJECTS[0] | null>(null);
   const [expandedStep, setExpandedStep] = useState<number | null>(0);
 
@@ -48,7 +47,6 @@ export default function ProjectsPage() {
       
       setUserProgress(progressMap);
 
-      // Fetch user's target career from local storage
       const storedCareer = localStorage.getItem(`skillpath_career_${currentUser.uid}`);
       if (storedCareer) {
         setTargetCareer(storedCareer);
@@ -67,7 +65,6 @@ export default function ProjectsPage() {
     load();
   }, [currentUser]);
 
-  // Improved matching logic based on target career - Memoized
   const isMatchFunc = useCallback((project: typeof LAB_PROJECTS[0]) => {
     if (!targetCareer) return false;
     const tc = targetCareer.toLowerCase();
@@ -109,11 +106,9 @@ export default function ProjectsPage() {
   const handleToggleStatus = async (projId: string, currentStatus: string) => {
     if (!currentUser?.uid || !selectedProject) return;
     
-    // Toggle progress simplified (Tersedia -> Sedang Dikerjakan -> Terselesaikan -> Tersedia)
     const nextStatus = currentStatus === 'Tersedia' ? 'Sedang Dikerjakan' : 
                        currentStatus === 'Sedang Dikerjakan' ? 'Terselesaikan' : 'Tersedia';
                        
-    // Update local state immediately for instant feedback
     const prev = { ...userProgress };
     let newEval: ProjectEvaluation = prev[projId] ? 
         { ...prev[projId], status: nextStatus, score: 100 } : 
@@ -121,7 +116,6 @@ export default function ProjectsPage() {
     
     setUserProgress(curr => ({...curr, [projId]: newEval}));
     
-    // Save to Firestore silently
     try {
       await updateProjectStatus(currentUser.uid, newEval);
     } catch (e) { console.error(e) }
@@ -452,7 +446,6 @@ export default function ProjectsPage() {
   );
 }
 
-// Simple icon mapper based on tech stack
 const CodeIcon = ({ type }: { type: string }) => {
   const t = type.toLowerCase();
   if (t.includes('node') || t.includes('javascript') || t.includes('js')) return <Monitor size={12} className="text-amber-500" />;

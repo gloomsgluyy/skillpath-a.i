@@ -32,7 +32,6 @@ export default function KineticTestimonial({
   mobileColumns = 1,
   speed = 1
 }: KineticTestimonialProps) {
-  // Split testimonials into 3 uneven groups to create a staggered masonry/marquee effect
   const col1 = [...testimonials].slice(0, Math.ceil(testimonials.length / 3));
   const col2 = [...testimonials].slice(Math.ceil(testimonials.length / 3), Math.ceil((testimonials.length / 3) * 2));
   const col3 = [...testimonials].slice(Math.ceil((testimonials.length / 3) * 2));
@@ -68,7 +67,6 @@ function TestimonialColumn({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   
-  // Create an infinite loop by duplicating the array
   const duplicatedItems = [...testimonials, ...testimonials, ...testimonials];
 
   return (

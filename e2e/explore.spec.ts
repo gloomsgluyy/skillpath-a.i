@@ -11,7 +11,6 @@ test.describe('Explore Careers Page', () => {
 
   test('renders search bar', async ({ page }) => {
     const searchInput = page.locator('input[placeholder*="Cari"]');
-    // If search exists, check it's visible
     const count = await searchInput.count();
     if (count > 0) {
       await expect(searchInput.first()).toBeVisible();
@@ -19,7 +18,6 @@ test.describe('Explore Careers Page', () => {
   });
 
   test('renders career cards or login prompt', async ({ page }) => {
-    // Either career cards with match scores or login prompt should appear
     await page.waitForTimeout(3000);
     
     const hasCards = await page.locator('[class*="rounded"]').count();
@@ -27,7 +25,6 @@ test.describe('Explore Careers Page', () => {
   });
 
   test('career category filters are interactive', async ({ page }) => {
-    // Look for category filter buttons/badges
     const filters = page.locator('button, [role="button"]');
     const count = await filters.count();
     expect(count).toBeGreaterThan(0);

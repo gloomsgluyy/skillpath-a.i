@@ -87,7 +87,6 @@ function CareerMindMap() {
   const topBranches = ['Tower Engineer', 'Product Designer', 'Cloud Designer', 'Cloud Engineer', 'Software Design'];
   const bottomBranches = ['Data Designer', 'Product Designer', 'Expert Designer', 'Cloud Engineer', 'Product Designer'];
 
-  // Numeric Y positions for top/bottom pills (in viewBox 0-100 space)
   const topY = [8, 16, 24, 32, 40];
   const bottomY = [60, 68, 76, 84, 92];
 
@@ -192,7 +191,6 @@ function SidePanelRadar() {
   const radius = 35;
   const center = 50;
 
-  // Custom polygon generator
   const generatePolygon = (r: number, offsetScale: number[] = []) => {
     return Array.from({ length: numPoints }).map((_, i) => {
       const angle = (Math.PI * 2 * i) / numPoints - Math.PI / 2; // Start from top

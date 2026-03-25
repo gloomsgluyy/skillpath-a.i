@@ -20,14 +20,12 @@ export default function DiscoverYourself() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [aiResult, setAiResult] = useState<any>(null);
   
-  // Adaptive Background Colors based on dominant category so far
   const [bgColor, setBgColor] = useState('from-[#fef0e6] via-[#fde4d4] to-[#fef5ee]'); // Default Sunset
   
   const progressPercent = ((currentStep) / DISCOVER_QUESTIONS.length) * 100;
   const currentQuestion = DISCOVER_QUESTIONS[currentStep];
 
   useEffect(() => {
-    // Basic adaptive background logic
     if (currentStep > 0) {
       const currentCat = currentQuestion?.category;
       if (currentCat === 'infrastructure' || currentCat === 'software') {
@@ -47,7 +45,6 @@ export default function DiscoverYourself() {
       setAnswers(newAnswers);
       setCurrentStep(currentStep + 1);
     } else {
-      // Finished all 25 questions
       setAnswers(newAnswers);
       await processAI(newAnswers);
     }
@@ -76,7 +73,6 @@ export default function DiscoverYourself() {
       }
     } catch (error) {
       console.error('Failed to process AI:', error);
-      // Fallback result if API fails
       setAiResult({
         primaryField: "Full-Stack Development",
         secondaryField: "Cloud Infrastructure",
@@ -244,8 +240,6 @@ export default function DiscoverYourself() {
                      
                      <div className="flex justify-center items-center gap-4 md:gap-8 order-1 md:order-2 w-full md:w-auto">
                         {[1, 2, 3, 4, 5].map((val) => {
-                           // 1 = Sangat setuju (Left, Gold/Amber)
-                           // 5 = Sangat tidak setuju (Right, Burgundy/Deep Orange)
                            const isAgree = val <= 2;
                            const isDisagree = val >= 4;
                            const size = 20 + (Math.abs(3 - val) * 16); // 1 and 5 = largest (52px), 3 = smallest (20px)
