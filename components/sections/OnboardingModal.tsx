@@ -170,7 +170,7 @@ export default function OnboardingModal() {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-hidden p-5 sm:p-8 relative min-h-0 flex flex-col">
+      <div className="flex-1 overflow-hidden relative min-h-0">
         <AnimatePresence mode="wait">
           
           {/* ── STEP 1: PENDIDIKAN ── */}
@@ -179,7 +179,7 @@ export default function OnboardingModal() {
               key="step1"
               initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
-              className="space-y-5"
+              className="absolute inset-0 p-5 sm:p-8 flex flex-col w-full h-full space-y-5"
             >
               <div>
                 <span className="inline-block px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest mb-2">Langkah 1/{totalSteps}</span>
@@ -211,7 +211,7 @@ export default function OnboardingModal() {
               key="step2"
               initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
-              className="space-y-4 flex flex-col flex-1 min-h-0 w-full"
+              className="absolute inset-0 p-5 sm:p-8 flex flex-col w-full h-full space-y-4"
             >
               <div className="shrink-0">
                 <span className="inline-block px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest mb-2">Langkah 2/{totalSteps}</span>
@@ -245,7 +245,7 @@ export default function OnboardingModal() {
               key="step3"
               initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
-              className="space-y-4 flex flex-col flex-1 min-h-0 w-full"
+              className="absolute inset-0 p-5 sm:p-8 flex flex-col w-full h-full space-y-4"
             >
               <div className="shrink-0">
                 <span className="inline-block px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest mb-2">Langkah 3/{totalSteps}</span>
@@ -329,7 +329,7 @@ export default function OnboardingModal() {
               key="step4"
               initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
-              className="space-y-4 flex flex-col flex-1 min-h-0 w-full"
+              className="absolute inset-0 p-5 sm:p-8 flex flex-col w-full h-full space-y-4"
             >
               <div className="shrink-0">
                 <span className="inline-block px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest mb-2">Langkah 4/{totalSteps}</span>
@@ -385,7 +385,7 @@ export default function OnboardingModal() {
             <motion.div 
               key="step5"
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center justify-center flex-1 min-h-0 w-full text-center px-2 py-4"
+              className="absolute inset-0 p-5 sm:p-8 flex flex-col w-full h-full items-center justify-center text-center"
             >
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 mb-5 flex items-center justify-center shadow-xl shadow-amber-500/40 relative shrink-0">
                   <div className="absolute -top-1.5 -right-1.5 bg-white text-amber-500 p-1 rounded-lg shadow-md animate-bounce">
