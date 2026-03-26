@@ -140,7 +140,7 @@ export default function OnboardingModal() {
   const totalSteps = 5;
 
   return (
-    <div className="bg-white/90 backdrop-blur-2xl rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-[0_32px_80px_-20px_rgba(0,0,0,0.15)] relative w-full h-[90vh] sm:h-[640px] max-h-[720px] flex flex-col border border-white/40">
+    <div className="bg-white/90 backdrop-blur-2xl rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-[0_32px_80px_-20px_rgba(0,0,0,0.15)] relative w-full max-w-2xl mx-4 flex flex-col border border-white/40" style={{ maxHeight: "calc(100vh - 4rem)" }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5 border-b border-slate-100/50 relative z-10 bg-white/60 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -170,7 +170,7 @@ export default function OnboardingModal() {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-hidden relative min-h-0 flex flex-col w-full">
+      <div className="flex-1 overflow-y-auto p-5 sm:p-8 w-full custom-scrollbar">
         <AnimatePresence mode="wait">
           
           {/* ── STEP 1: PENDIDIKAN ── */}
@@ -179,7 +179,7 @@ export default function OnboardingModal() {
               key="step1"
               initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
-              className="flex-1 flex flex-col w-full p-5 sm:p-8 space-y-5 min-h-0"
+              className="w-full space-y-5"
             >
               <div>
                 <span className="inline-block px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest mb-2">Langkah 1/{totalSteps}</span>
@@ -211,7 +211,7 @@ export default function OnboardingModal() {
               key="step2"
               initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
-              className="flex-1 flex flex-col w-full p-5 sm:p-8 space-y-4 min-h-0"
+              className="w-full space-y-4"
             >
               <div className="shrink-0">
                 <span className="inline-block px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest mb-2">Langkah 2/{totalSteps}</span>
@@ -219,7 +219,7 @@ export default function OnboardingModal() {
                 <p className="text-slate-500 text-xs sm:text-sm font-medium">Pilih satu yang paling cocok.</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 overflow-y-auto flex-1 min-h-0 pr-1 pb-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                 {ARCHETYPES.map((arch) => (
                   <button
                     key={arch.id}
@@ -245,7 +245,7 @@ export default function OnboardingModal() {
               key="step3"
               initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
-              className="flex-1 flex flex-col w-full p-5 sm:p-8 space-y-4 min-h-0"
+              className="w-full space-y-4"
             >
               <div className="shrink-0">
                 <span className="inline-block px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest mb-2">Langkah 3/{totalSteps}</span>
@@ -253,7 +253,7 @@ export default function OnboardingModal() {
                 <p className="text-slate-500 text-xs sm:text-sm font-medium">Pilih sebanyak yang kamu mau — bebas!</p>
               </div>
 
-              <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-2 space-y-4">
+              <div className="space-y-4 pb-2">
                 <div className="flex flex-wrap gap-2">
                   {ROLE_OPTIONS.map((role) => {
                   const selected = data.roleInterests.includes(role);
@@ -329,7 +329,7 @@ export default function OnboardingModal() {
               key="step4"
               initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
-              className="flex-1 flex flex-col w-full p-5 sm:p-8 space-y-4 min-h-0"
+              className="w-full space-y-4"
             >
               <div className="shrink-0">
                 <span className="inline-block px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest mb-2">Langkah 4/{totalSteps}</span>
@@ -337,7 +337,7 @@ export default function OnboardingModal() {
                 <p className="text-slate-500 text-xs sm:text-sm font-medium">Detail agar AI bisa kasih saran yang jitu.</p>
               </div>
 
-              <div className="space-y-4 flex-1 overflow-y-auto min-h-0 pr-1 pb-2">
+              <div className="space-y-4 pr-1 pb-2">
                 <div className="shrink-0">
                   <label className="block text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest mb-1.5">
                     {data.pendidikan === 'SMA' ? 'Penjurusan (MIPA/IPS/Bahasa)' : 
@@ -385,7 +385,7 @@ export default function OnboardingModal() {
             <motion.div 
               key="step5"
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-              className="flex-1 flex flex-col w-full p-5 sm:p-8 items-center justify-center text-center min-h-0"
+              className="w-full items-center justify-center text-center py-4"
             >
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 mb-5 flex items-center justify-center shadow-xl shadow-amber-500/40 relative shrink-0">
                   <div className="absolute -top-1.5 -right-1.5 bg-white text-amber-500 p-1 rounded-lg shadow-md animate-bounce">
