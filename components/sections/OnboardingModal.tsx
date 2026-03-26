@@ -140,7 +140,7 @@ export default function OnboardingModal() {
   const totalSteps = 5;
 
   return (
-    <div className="bg-white/90 backdrop-blur-2xl rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-[0_32px_80px_-20px_rgba(0,0,0,0.15)] relative w-full max-h-[90vh] sm:max-h-[640px] flex flex-col border border-white/40">
+    <div className="bg-white/90 backdrop-blur-2xl rounded-2xl sm:rounded-[2.5rem] overflow-hidden shadow-[0_32px_80px_-20px_rgba(0,0,0,0.15)] relative w-full h-[90vh] sm:h-[640px] max-h-[720px] flex flex-col border border-white/40">
       {/* Header */}
       <div className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5 border-b border-slate-100/50 relative z-10 bg-white/60 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
