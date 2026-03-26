@@ -211,7 +211,7 @@ export default function OnboardingModal() {
               key="step2"
               initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
-              className="space-y-4 flex flex-col h-full"
+              className="space-y-4 flex flex-col flex-1 min-h-0 w-full"
             >
               <div className="shrink-0">
                 <span className="inline-block px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest mb-2">Langkah 2/{totalSteps}</span>
@@ -245,7 +245,7 @@ export default function OnboardingModal() {
               key="step3"
               initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
-              className="space-y-4 flex flex-col h-full"
+              className="space-y-4 flex flex-col flex-1 min-h-0 w-full"
             >
               <div className="shrink-0">
                 <span className="inline-block px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest mb-2">Langkah 3/{totalSteps}</span>
@@ -329,7 +329,7 @@ export default function OnboardingModal() {
               key="step4"
               initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
-              className="space-y-4 flex flex-col h-full"
+              className="space-y-4 flex flex-col flex-1 min-h-0 w-full"
             >
               <div className="shrink-0">
                 <span className="inline-block px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest mb-2">Langkah 4/{totalSteps}</span>
@@ -385,7 +385,7 @@ export default function OnboardingModal() {
             <motion.div 
               key="step5"
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center justify-center h-full text-center px-2 py-4"
+              className="flex flex-col items-center justify-center flex-1 min-h-0 w-full text-center px-2 py-4"
             >
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 mb-5 flex items-center justify-center shadow-xl shadow-amber-500/40 relative shrink-0">
                   <div className="absolute -top-1.5 -right-1.5 bg-white text-amber-500 p-1 rounded-lg shadow-md animate-bounce">
