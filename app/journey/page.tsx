@@ -53,9 +53,9 @@ export default function LearningJourney() {
         }
 
         let targetCareer = currentCareer || '';
-        if (!targetCareer) {
+        if (!targetCareer || targetCareer === 'Full-Stack Developer') {
           const rec = await getAIRecommendation(currentUser.uid);
-          targetCareer = rec?.careerTitle || getBestKnownCareer(currentUser.uid);
+          targetCareer = rec?.careerTitle || (targetCareer ? targetCareer : getBestKnownCareer(currentUser.uid));
           if (targetCareer) setLocalCareer(currentUser.uid, targetCareer);
         }
 

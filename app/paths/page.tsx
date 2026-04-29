@@ -93,7 +93,7 @@ export default function SkillPathsPage() {
 
         let targetCareer = careerFromUrl || careerFromStorage;
 
-        if (!targetCareer) {
+        if (!targetCareer || targetCareer === 'Full-Stack Developer') {
           const rec = await getAIRecommendation(currentUser.uid);
           if (rec) targetCareer = rec.careerTitle;
         }
