@@ -552,7 +552,7 @@ export default function Home() {
 
       </main>
 
-      <dialog id="onboarding-modal" className="backdrop:bg-black/50 bg-transparent rounded-2xl sm:rounded-3xl outline-none border-none p-0 overflow-hidden shadow-2xl m-auto w-[95vw] sm:w-[640px] max-w-[640px]">
+      <dialog id="onboarding-modal" className="backdrop:bg-black/50 bg-transparent rounded-2xl sm:rounded-3xl outline-none border-none p-0 overflow-hidden shadow-2xl m-auto w-[calc(100vw-1rem)] max-w-[640px] sm:w-[640px] max-h-[calc(100dvh-1rem)]">
         <OnboardingModal />
       </dialog>
 
