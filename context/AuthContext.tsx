@@ -9,8 +9,8 @@ import { useRouter } from 'next/navigation';
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
-  signInWithEmail: (email: string, pass: string, name?: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, pass: string, name?: string) => Promise<User>;
+  signInWithGoogle: () => Promise<User>;
   logout: () => Promise<void>;
 }
 
@@ -39,11 +39,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let userRec;
       try {
         userRec = await signInWithEmailAndPassword(auth, email, pass);
-      } catch (e: any) {
-        if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+      } catch (error: unknown) {
+        const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : '';
+        if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
           userRec = await createUserWithEmailAndPassword(auth, email, pass);
         } else {
-          throw e; // Error lain (wrong password, dll)
+          throw error; // Error lain (wrong password, dll)
         }
       }
 
@@ -67,7 +68,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         pendidikan: onboardingData.pendidikan || '',
         archetype: onboardingData.archetype || '',
         roleInterests: onboardingData.roleInterests || [],
-        }).catch((err: any) => console.error('Firestore save error:', err));
+        jurusan: onboardingData.jurusan || '',
+        minat: onboardingData.minat || '',
+        targetCareer: onboardingData.targetCareer || '',
+        }).catch((err: unknown) => console.error('Firestore save error:', err));
+
+      return user;
       
     } catch (error) {
       console.error("Error signing in with Email", error);
@@ -96,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (targetName && targetName !== user.displayName) {
          try {
            await updateProfile(user, { displayName: targetName });
-         } catch(e){}
+         } catch {}
       }
       
       await saveUserProfile(user.uid, {
@@ -107,7 +113,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         pendidikan: onboardingData.pendidikan || '',
         archetype: onboardingData.archetype || '',
         roleInterests: onboardingData.roleInterests || [],
+        jurusan: onboardingData.jurusan || '',
+        minat: onboardingData.minat || '',
+        targetCareer: onboardingData.targetCareer || '',
       }).catch(err => console.error('Firestore save error:', err));
+
+      return user;
     } catch (error) {
       console.error("Error signing in with Google", error);
       throw error;

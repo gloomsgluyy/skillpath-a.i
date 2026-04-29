@@ -2,15 +2,17 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
+import dynamic from 'next/dynamic';
 import { Navbar } from '@/components/layout/Navbar';
 import { ArrowRight, Bot, Send, GraduationCap, LayoutList, FolderKanban, Target, Compass, Cloud, User, PenTool, Activity } from 'lucide-react';
 import { AnimatedTextGenerate } from "@/components/ui/animated-textgenerate";
 import BackgroundMeteors from '@/components/ui/backgroundmeteors';
 import { Button } from '@/components/ui/button';
-import HomeTestimonials from '@/components/sections/HomeTestimonials';
-import OnboardingModal from '@/components/sections/OnboardingModal';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+
+const HomeTestimonials = dynamic(() => import('@/components/sections/HomeTestimonials'), { ssr: false });
+const OnboardingModal = dynamic(() => import('@/components/sections/OnboardingModal'), { ssr: false });
 
 /* ─── Traffic Light Window Header ─── */
 function WindowHeader() {

@@ -23,6 +23,15 @@ import { Search, Brain, Code, Server, Palette, Sparkles, Network, Database, Shie
 import { useAuth } from '@/context/AuthContext';
 import { CAREERS, CATEGORIES, computeMatchScore, searchCareers, type Career } from '@/lib/careers-database';
 import { saveAIRecommendation, getAIRecommendation, saveUserProfile } from '@/lib/firestore';
+import {
+  normalizeRecommendations,
+  readOnboardingProfile,
+  readPendingRecommendations,
+  saveOnboardingProfile,
+  setLocalCareer,
+  type CareerRecommendation,
+  type OnboardingProfile,
+} from '@/lib/personalization';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   "Kreatif & Desain": <Palette className="w-8 h-8 text-orange-500" />,
@@ -66,57 +75,66 @@ export default function ExploreCareers() {
   }, []);
 
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState<{
-    careerTitle: string;
-    matchScore: number;
-    reason: string;
-    skills: string[];
-  } | null>(null);
-  const [aiOptions, setAiOptions] = useState<any[] | null>(null);
+  const [aiResult, setAiResult] = useState<CareerRecommendation | null>(null);
+  const [aiOptions, setAiOptions] = useState<CareerRecommendation[] | null>(null);
   const [userName, setUserName] = useState('');
-  const [userProfile, setUserProfile] = useState<any>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('skillpath_onboarding_data');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (parsed.displayName) setUserName(parsed.displayName);
-          return parsed;
-        } catch { return null; }
-      }
-    }
-    return null;
-  });
+  const [userProfile, setUserProfile] = useState<OnboardingProfile | null>(() => readOnboardingProfile());
 
   useEffect(() => {
-    if (!userProfile) {
-      const storedData = localStorage.getItem('skillpath_onboarding_data');
-      if (storedData) {
-        const parsed = JSON.parse(storedData);
-        setUserProfile(parsed);
-        if (parsed.displayName) setUserName(parsed.displayName);
-      }
-    }
+    if (userProfile?.displayName) setUserName(userProfile.displayName);
+  }, [userProfile]);
+
+  useEffect(() => {
+    if (!userProfile) setUserProfile(readOnboardingProfile());
   }, [userProfile]);
 
   useEffect(() => {
     const showAi = searchParams.get('showAiResult');
+    const personalized = searchParams.get('personalized');
 
     async function loadOrFetchRecommendation() {
-      if (showAi && userProfile && !aiLoading) {
+      if ((showAi || personalized) && userProfile && !aiLoading) {
         setAiLoading(true);
         setAiResult(null); 
         try {
+          const pending = readPendingRecommendations({ consume: true });
+          if (pending) {
+            const selected = pending.selected;
+            const profile = { ...userProfile, ...pending.profile, targetCareer: selected.careerTitle };
+
+            setUserProfile(profile);
+            saveOnboardingProfile(profile);
+            setAiOptions(pending.recommendations);
+
+            if (currentUser?.uid) {
+              setLocalCareer(currentUser.uid, selected.careerTitle);
+              saveAIRecommendation(currentUser.uid, selected).catch(console.error);
+              saveUserProfile(currentUser.uid, { targetCareer: selected.careerTitle }).catch(console.warn);
+            }
+            return;
+          }
+
           const res = await fetch('/api/recommend', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(userProfile)
           });
           const result = await res.json();
-          if (result.recommendations && Array.isArray(result.recommendations)) {
-            setAiOptions(result.recommendations);
-          } else if (result.careerTitle) {
-            setAiResult(result);
+          const recommendations = normalizeRecommendations(result);
+
+          if (recommendations.length > 0) {
+            const selected = recommendations[0];
+            const profile = { ...userProfile, targetCareer: selected.careerTitle };
+
+            setAiOptions(recommendations);
+            setUserProfile(profile);
+            saveOnboardingProfile(profile);
+
+            if (currentUser?.uid) {
+              setLocalCareer(currentUser.uid, selected.careerTitle);
+              saveAIRecommendation(currentUser.uid, selected).catch(console.error);
+              saveUserProfile(currentUser.uid, { targetCareer: selected.careerTitle }).catch(console.warn);
+            }
           }
         } catch (err) {
           console.warn("AI Fetch Error:", err);
@@ -144,7 +162,7 @@ export default function ExploreCareers() {
 
   useEffect(() => {
     if (aiResult && currentUser?.uid) {
-      localStorage.setItem(`skillpath_career_${currentUser.uid}`, aiResult.careerTitle);
+      setLocalCareer(currentUser.uid, aiResult.careerTitle);
       getAIRecommendation(currentUser.uid).then(saved => {
         if (!saved || saved.careerTitle !== aiResult.careerTitle) {
           saveAIRecommendation(currentUser.uid, aiResult).catch(console.error);
@@ -274,8 +292,8 @@ export default function ExploreCareers() {
                                   setAiResult(opt);
                                   setAiOptions(null);
                                   if (currentUser?.uid) {
-                                    localStorage.setItem(`skillpath_career_${currentUser.uid}`, opt.careerTitle);
-                                    saveUserProfile(currentUser.uid, { targetCareer: opt.careerTitle } as any).catch(console.warn);
+                                    setLocalCareer(currentUser.uid, opt.careerTitle);
+                                    saveUserProfile(currentUser.uid, { targetCareer: opt.careerTitle }).catch(console.warn);
                                   }
                                 }}
                                 className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black rounded-xl"

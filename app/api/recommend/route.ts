@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { CAREERS, computeMatchScore } from '@/lib/careers-database';
 
 const recommendSchema = z.object({
   pendidikan: z.string().optional(),
@@ -9,7 +10,23 @@ const recommendSchema = z.object({
   roleInterests: z.array(z.string()).optional(),
 });
 
+type RecommendProfile = z.infer<typeof recommendSchema>;
+
+function buildFallbackRecommendations(profile: RecommendProfile) {
+  return CAREERS
+    .map((career) => ({
+      careerTitle: career.title,
+      matchScore: computeMatchScore(career, profile),
+      reason: `Cocok dengan minat ${profile.roleInterests?.join(', ') || profile.minat} dan latar ${profile.jurusan || profile.pendidikan || 'profil'} yang kamu isi.`,
+      skills: career.skills.slice(0, 3),
+    }))
+    .sort((a, b) => b.matchScore - a.matchScore)
+    .slice(0, 3);
+}
+
 export async function POST(req: Request) {
+  let fallbackProfile: RecommendProfile | null = null;
+
   try {
     const body = await req.json();
     const validation = recommendSchema.safeParse(body);
@@ -19,6 +36,7 @@ export async function POST(req: Request) {
     }
 
     const { pendidikan, jurusan, minat, archetype, roleInterests } = validation.data;
+    fallbackProfile = validation.data;
 
     const prompt = `Sebagai konsultan karir AI elit, analisislah profil berikut:
 - Pendidikan: ${pendidikan || 'Belum diisi'}
@@ -78,8 +96,15 @@ HANYA kembalikan JSON murni, jangan ada teks lain. DILARANG KERAS MENGGUNAKAN EM
     
     return NextResponse.json(result);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating recommendation:', error);
-    return NextResponse.json({ error: 'Gagal memproses rekomendasi AI.', details: error.message }, { status: 500 });
+    if (fallbackProfile) {
+      return NextResponse.json({
+        recommendations: buildFallbackRecommendations(fallbackProfile),
+        source: 'local-fallback',
+      });
+    }
+    const details = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: 'Gagal memproses rekomendasi AI.', details }, { status: 500 });
   }
 }

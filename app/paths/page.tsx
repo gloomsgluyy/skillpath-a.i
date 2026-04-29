@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { getSkillPath, saveSkillPath, updateSkillPathNode, getAIRecommendation, type SkillPathNode } from '@/lib/firestore';
+import { CAREERS } from '@/lib/careers-database';
+import { getBestKnownCareer, getLocalCareer, setLocalCareer } from '@/lib/personalization';
 import confetti from 'canvas-confetti';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -42,7 +44,10 @@ export default function SkillPathsPage() {
   const loadedCareerRef = React.useRef<string | null>(null);
 
   useEffect(() => {
-    const careerParam = searchParams.get('career');
+    const rawCareerParam = searchParams.get('career');
+    const careerParam = rawCareerParam
+      ? CAREERS.find(c => c.id === rawCareerParam)?.title || rawCareerParam
+      : '';
     const loadKey = careerParam || '__default__';
 
     async function load() {
@@ -52,10 +57,8 @@ export default function SkillPathsPage() {
       loadedCareerRef.current = loadKey;
 
       try {
-        const careerKey = `skillpath_career_${currentUser.uid}`;
-
         const careerFromUrl = careerParam || '';
-        const careerFromStorage = localStorage.getItem(careerKey) || '';
+        const careerFromStorage = getLocalCareer(currentUser.uid);
 
         const existingPath = await getSkillPath(currentUser.uid);
 
@@ -74,7 +77,7 @@ export default function SkillPathsPage() {
             };
           });
 
-          localStorage.setItem(careerKey, existingPath.targetCareer);
+          setLocalCareer(currentUser.uid, existingPath.targetCareer);
           setCareer(existingPath.targetCareer);
           setNodes(sanitizedNodes);
           const savedChat = localStorage.getItem(`chat_${currentUser.uid}`);
@@ -94,9 +97,15 @@ export default function SkillPathsPage() {
           const rec = await getAIRecommendation(currentUser.uid);
           if (rec) targetCareer = rec.careerTitle;
         }
-        if (!targetCareer) targetCareer = 'Full-Stack Developer';
+        if (!targetCareer) targetCareer = getBestKnownCareer(currentUser.uid);
 
-        localStorage.setItem(careerKey, targetCareer);
+        if (!targetCareer) {
+          setMessages([{ role: 'ai', content: 'Target karir belum dipersonalisasi. Balik ke halaman utama dan selesaikan personalisasi dulu supaya roadmap tidak dibuat dari default sembarang.' }]);
+          setNodes([]);
+          return;
+        }
+
+        setLocalCareer(currentUser.uid, targetCareer);
         setCareer(targetCareer);
         setGenerating(true);
         setMessages([{ role: 'ai', content: `Hai! Saya sedang membuatkan roadmap belajar untuk menjadi **${targetCareer}**. Tunggu sebentar...` }]);
@@ -209,7 +218,7 @@ export default function SkillPathsPage() {
         setMessages(prev => [...prev, { role: 'ai', content: `Baik! Saya akan membuatkan roadmap baru untuk **${newCareer}**. Tunggu sebentar...` }]);
         setCareer(newCareer);
         setGenerating(true);
-        localStorage.setItem(`skillpath_career_${currentUser?.uid}`, newCareer);
+        if (currentUser?.uid) setLocalCareer(currentUser.uid, newCareer);
 
         try {
           const regenRes = await fetch('/api/generate-path', {
@@ -270,7 +279,7 @@ export default function SkillPathsPage() {
     }
   }, [messages, currentUser]);
 
-  const neuralNodes: NeuralNodeData[] = nodes.map(n => ({
+  const neuralNodes: NeuralNodeData[] = useMemo(() => nodes.map(n => ({
     id: n.id,
     title: n.title,
     description: n.description,
@@ -282,7 +291,7 @@ export default function SkillPathsPage() {
     connections: n.connections || [],
     estimatedHours: n.estimatedHours,
     learning_resources: n.learning_resources,
-  }));
+  })), [nodes]);
 
   if (!currentUser) {
     return (

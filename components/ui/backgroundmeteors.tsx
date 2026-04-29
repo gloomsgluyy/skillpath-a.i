@@ -1,6 +1,6 @@
 'use client';
-import React, { useEffect, useState, ReactNode } from 'react';
-import { motion } from 'motion/react';
+import React, { useEffect, useRef, useState, ReactNode } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 
 interface Beam {
   id: number;
@@ -16,33 +16,45 @@ export default function BackgroundMeteors({
   children,
 }: BackgroundMeteorsProps) {
   const [beams, setBeams] = useState<Beam[]>([]);
+  const [lowPowerDevice] = useState(() => {
+    const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 8 : 8;
+    const compactViewport = typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false;
+    return cores <= 4 || compactViewport;
+  });
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prefersReducedMotion = useReducedMotion();
   const gridSize = 40;
-  const totalLines = 35;
-
-  const generateSafeGridPositions = (count: number): number[] => {
-    const available: number[] = [];
-    for (let i = 0; i < totalLines - 1; i++) {
-      available.push(i);
-    }
-
-    const selected: number[] = [];
-    while (available.length > 0 && selected.length < count) {
-      const idx = Math.floor(Math.random() * available.length);
-      const value = available[idx];
-      selected.push(value);
-      available.splice(
-        0,
-        available.length,
-        ...available.filter((v) => Math.abs(v - value) > 1),
-      );
-    }
-
-    return selected.map((line) => line * gridSize);
-  };
+  const shouldReduceMotion = Boolean(prefersReducedMotion || lowPowerDevice);
 
   useEffect(() => {
+    if (shouldReduceMotion) {
+      return;
+    }
+
+    const totalLines = 35;
+    const generateSafeGridPositions = (count: number): number[] => {
+      const available: number[] = [];
+      for (let i = 0; i < totalLines - 1; i++) {
+        available.push(i);
+      }
+
+      const selected: number[] = [];
+      while (available.length > 0 && selected.length < count) {
+        const idx = Math.floor(Math.random() * available.length);
+        const value = available[idx];
+        selected.push(value);
+        available.splice(
+          0,
+          available.length,
+          ...available.filter((v) => Math.abs(v - value) > 1),
+        );
+      }
+
+      return selected.map((line) => line * gridSize);
+    };
+
     const generateBeams = () => {
-      const count = Math.floor(Math.random() * 2) + 3;
+      const count = Math.floor(Math.random() * 2) + 2;
       const xPositions = generateSafeGridPositions(count);
 
       const newBeams: Beam[] = xPositions.map((x) => ({
@@ -54,11 +66,15 @@ export default function BackgroundMeteors({
       setBeams(newBeams);
 
       const maxDuration = Math.max(...newBeams.map((b) => b.duration));
-      setTimeout(generateBeams, (maxDuration - 0.5) * 1000);
+      timeoutRef.current = setTimeout(generateBeams, (maxDuration + 1) * 1000);
     };
 
     generateBeams();
-  }, []);
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [gridSize, shouldReduceMotion]);
 
   return (
     <div className='relative w-full min-h-screen bg-[#fef0e6] dark:bg-black'>
@@ -68,29 +84,29 @@ export default function BackgroundMeteors({
         <motion.div
           className="absolute -top-[20%] -left-[10%] w-[800px] h-[800px] rounded-full opacity-60 mix-blend-multiply"
           style={{ background: 'radial-gradient(circle, rgba(255,126,95,0.4) 0%, transparent 60%)' }}
-          animate={{ x: [0, 40, 0], y: [0, 30, 0] }}
-          transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+          animate={shouldReduceMotion ? undefined : { x: [0, 40, 0], y: [0, 30, 0] }}
+          transition={shouldReduceMotion ? undefined : { duration: 15, repeat: Infinity, ease: 'easeInOut' }}
         />
         {/* Center-right amber blob */}
         <motion.div
           className="absolute top-[10%] -right-[10%] w-[700px] h-[700px] rounded-full opacity-50 mix-blend-multiply"
           style={{ background: 'radial-gradient(circle, rgba(254,180,123,0.5) 0%, transparent 60%)' }}
-          animate={{ x: [0, -30, 0], y: [0, 40, 0] }}
-          transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+          animate={shouldReduceMotion ? undefined : { x: [0, -30, 0], y: [0, 40, 0] }}
+          transition={shouldReduceMotion ? undefined : { duration: 18, repeat: Infinity, ease: 'easeInOut' }}
         />
         {/* Bottom-left soft peach blob */}
         <motion.div
           className="absolute top-[50%] -left-[10%] w-[600px] h-[600px] rounded-full opacity-50 mix-blend-multiply"
           style={{ background: 'radial-gradient(circle, rgba(255,200,170,0.6) 0%, transparent 60%)' }}
-          animate={{ x: [0, 35, 0], y: [0, -25, 0] }}
-          transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+          animate={shouldReduceMotion ? undefined : { x: [0, 35, 0], y: [0, -25, 0] }}
+          transition={shouldReduceMotion ? undefined : { duration: 20, repeat: Infinity, ease: 'easeInOut' }}
         />
         {/* Bottom-right sunset glow */}
         <motion.div
           className="absolute top-[70%] right-[0%] w-[700px] h-[700px] rounded-full opacity-40 mix-blend-multiply"
           style={{ background: 'radial-gradient(circle, rgba(255,150,100,0.5) 0%, transparent 60%)' }}
-          animate={{ x: [0, -25, 0], y: [0, -20, 0] }}
-          transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
+          animate={shouldReduceMotion ? undefined : { x: [0, -25, 0], y: [0, -20, 0] }}
+          transition={shouldReduceMotion ? undefined : { duration: 16, repeat: Infinity, ease: 'easeInOut' }}
         />
       </div>
 

@@ -4,12 +4,22 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
+import { saveAIRecommendation, saveUserProfile } from '@/lib/firestore';
+import {
+  buildOnboardingProfile,
+  fetchCareerRecommendations,
+  saveOnboardingProfile,
+  savePendingRecommendations,
+  setLocalCareer,
+  type OnboardingProfile,
+} from '@/lib/personalization';
 import {
   ChevronRight, ArrowLeft, Palette, Code, Briefcase, Database,
   Sparkles, GraduationCap, Megaphone, Shield, Wrench, Lightbulb,
   Bot, AlertCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import type { User as FirebaseUser } from 'firebase/auth';
 
 type OnboardingState = {
   step: number;
@@ -90,14 +100,17 @@ export default function OnboardingModal() {
   const [showCustomRole, setShowCustomRole] = useState(false);
   const [customRoleInput, setCustomRoleInput] = useState('');
   const [authError, setAuthError] = useState('');
+  const [submitStatus, setSubmitStatus] = useState('');
 
   const handleNext = (updates: Partial<OnboardingState>) => {
     setAuthError('');
+    setSubmitStatus('');
     setData((prev) => ({ ...prev, ...updates, step: prev.step + 1 }));
   };
 
   const handleBack = () => {
     setAuthError('');
+    setSubmitStatus('');
     setData((prev) => ({ ...prev, step: Math.max(1, prev.step - 1) }));
   };
 
@@ -116,58 +129,82 @@ export default function OnboardingModal() {
   const closeModal = () => {
     const dialog = document.getElementById('onboarding-modal') as HTMLDialogElement;
     if (dialog) dialog.close();
+    setSubmitStatus('');
     setTimeout(() => setData({ step: 1, pendidikan: '', archetype: '', roleInterests: [], jurusan: '', minat: '', displayName: '', email: '', pass: '' }), 300);
+  };
+
+  const getProfilePayload = (): OnboardingProfile => buildOnboardingProfile({
+    pendidikan: data.pendidikan,
+    archetype: data.archetype,
+    roleInterests: data.roleInterests,
+    jurusan: data.jurusan,
+    minat: data.minat,
+    displayName: data.displayName,
+  });
+
+  const finishPersonalization = async (user: FirebaseUser | null, profile: OnboardingProfile) => {
+    setSubmitStatus('Mencari rekomendasi karir terbaik...');
+    const recommendations = await fetchCareerRecommendations(profile);
+    const selected = recommendations[0];
+    const personalizedProfile = { ...profile, targetCareer: selected.careerTitle };
+
+    saveOnboardingProfile(personalizedProfile);
+    savePendingRecommendations(recommendations, personalizedProfile);
+
+    if (user?.uid) {
+      setSubmitStatus('Menyimpan hasil personalisasi...');
+      setLocalCareer(user.uid, selected.careerTitle);
+      await Promise.all([
+        saveAIRecommendation(user.uid, selected),
+        saveUserProfile(user.uid, personalizedProfile),
+      ]);
+    }
+
+    closeModal();
+    router.push('/explore?personalized=true');
   };
 
   const handleEmailLogin = async () => {
     setIsSubmitting(true);
     setAuthError('');
+    setSubmitStatus('Masuk ke akun...');
+    const profile = getProfilePayload();
     try {
-      localStorage.setItem('skillpath_onboarding_data', JSON.stringify({
-        pendidikan: data.pendidikan,
-        archetype: data.archetype,
-        roleInterests: data.roleInterests,
-        jurusan: data.jurusan,
-        minat: data.minat,
-        displayName: data.displayName,
-      }));
+      saveOnboardingProfile(profile);
 
+      let user = currentUser;
       if (!currentUser) {
-        await signInWithEmail(data.email, data.pass, data.displayName);
+        user = await signInWithEmail(data.email, data.pass, data.displayName);
       }
-      
-      closeModal();
-      router.push('/explore?showAiResult=true');
+
+      await finishPersonalization(user, profile);
     } catch (error) {
       console.error("Login failed:", error);
       setAuthError(getAuthErrorMessage(error, 'Gagal masuk. Periksa koneksi, email, dan password Anda.'));
       setIsSubmitting(false);
+      setSubmitStatus('');
     }
   };
 
   const handleGoogleLogin = async () => {
     setIsSubmitting(true);
     setAuthError('');
+    setSubmitStatus('Masuk dengan Google...');
+    const profile = getProfilePayload();
     try {
-      localStorage.setItem('skillpath_onboarding_data', JSON.stringify({
-        pendidikan: data.pendidikan,
-        archetype: data.archetype,
-        roleInterests: data.roleInterests,
-        jurusan: data.jurusan,
-        minat: data.minat,
-        displayName: data.displayName,
-      }));
+      saveOnboardingProfile(profile);
 
+      let user = currentUser;
       if (!currentUser) {
-        await signInWithGoogle();
+        user = await signInWithGoogle();
       }
-      
-      closeModal();
-      router.push('/explore?showAiResult=true');
+
+      await finishPersonalization(user, profile);
     } catch (error) {
       console.error("Google Login failed:", error);
       setAuthError(getAuthErrorMessage(error, 'Gagal masuk dengan Google. Coba lagi beberapa saat lagi.'));
       setIsSubmitting(false);
+      setSubmitStatus('');
     }
   };
 
@@ -257,7 +294,7 @@ export default function OnboardingModal() {
                 {ARCHETYPES.map((arch) => (
                   <button
                     key={arch.id}
-                    onClick={() => handleNext({ archetype: arch.title })}
+                    onClick={() => handleNext({ archetype: arch.id })}
                     className="group flex items-center gap-3 p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 border-slate-100 hover:border-amber-400 hover:bg-white hover:shadow-md transition-all text-left active:scale-[0.97]"
                   >
                     <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${arch.color} flex items-center justify-center text-white shadow-sm shrink-0 group-hover:scale-110 transition-transform`}>
@@ -463,7 +500,7 @@ export default function OnboardingModal() {
                   disabled={isSubmitting || !data.email || !data.pass || data.pass.length < 6}
                   className="w-full py-4 mb-3 rounded-2xl text-sm font-black bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-[0_10px_25px_rgba(245,158,11,0.35)] text-white disabled:opacity-50 transition-all active:scale-95"
                 >
-                  {isSubmitting ? "Memproses..." : "Simpan & Lanjut"}
+                  {isSubmitting ? (submitStatus || "Memproses...") : "Simpan & Lanjut"}
                 </button>
 
                 <div className="flex items-center gap-2 w-full mb-3">
@@ -486,6 +523,12 @@ export default function OnboardingModal() {
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>{authError}</span>
                   </div>
+                )}
+
+                {isSubmitting && !authError && submitStatus && (
+                  <p className="mt-3 text-center text-xs font-bold text-slate-500">
+                    Jangan tutup halaman dulu, personalisasi sedang disiapkan.
+                  </p>
                 )}
               </div>
             </motion.div>

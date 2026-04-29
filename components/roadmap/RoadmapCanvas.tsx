@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { NeuralNode, type NeuralNodeData } from './NeuralNode';
 import { ConnectionLine } from './ConnectionLine';
@@ -18,6 +18,24 @@ export const RoadmapCanvas = ({ nodes, career, onNodeClick }: Props) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [selectedNode, setSelectedNode] = useState<NeuralNodeData | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const pendingTranslateRef = useRef(translate);
+
+  const queueTranslate = useCallback((next: { x: number; y: number }) => {
+    pendingTranslateRef.current = next;
+    if (rafRef.current !== null) return;
+
+    rafRef.current = requestAnimationFrame(() => {
+      setTranslate(pendingTranslateRef.current);
+      rafRef.current = null;
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -33,8 +51,8 @@ export const RoadmapCanvas = ({ nodes, career, onNodeClick }: Props) => {
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging) return;
-    setTranslate({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-  }, [isDragging, dragStart]);
+    queueTranslate({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+  }, [isDragging, dragStart, queueTranslate]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if ((e.target as HTMLElement).closest('.neural-node')) return;
@@ -46,8 +64,8 @@ export const RoadmapCanvas = ({ nodes, career, onNodeClick }: Props) => {
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging) return;
     const touch = e.touches[0];
-    setTranslate({ x: touch.clientX - dragStart.x, y: touch.clientY - dragStart.y });
-  }, [isDragging, dragStart]);
+    queueTranslate({ x: touch.clientX - dragStart.x, y: touch.clientY - dragStart.y });
+  }, [isDragging, dragStart, queueTranslate]);
 
   const handleMouseUp = useCallback(() => setIsDragging(false), []);
   const handleTouchEnd = useCallback(() => setIsDragging(false), []);

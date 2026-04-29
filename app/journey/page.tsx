@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getUserJourney, saveUserJourney, markTaskCompleted, getAIRecommendation, type JourneyTask } from '@/lib/firestore';
+import { getBestKnownCareer, getLocalCareer, setLocalCareer } from '@/lib/personalization';
 import confetti from 'canvas-confetti';
 
 export default function LearningJourney() {
@@ -25,6 +26,7 @@ export default function LearningJourney() {
   const [generating, setGenerating] = useState(false);
   const [career, setCareer] = useState('');
   const [streak, setStreak] = useState(0);
+  const [needsPersonalization, setNeedsPersonalization] = useState(false);
 
   const loadedRef = React.useRef(false);
 
@@ -36,15 +38,14 @@ export default function LearningJourney() {
       loadedRef.current = true;
 
       try {
-        const careerKey = `skillpath_career_${currentUser.uid}`;
-        const currentCareer = localStorage.getItem(careerKey) || '';
+        const currentCareer = getLocalCareer(currentUser.uid);
 
         const existing = await getUserJourney(currentUser.uid);
 
         const careerChanged = currentCareer && existing?.targetCareer && currentCareer !== existing.targetCareer;
 
         if (existing && existing.tasks?.length > 0 && !careerChanged) {
-          localStorage.setItem(careerKey, existing.targetCareer);
+          setLocalCareer(currentUser.uid, existing.targetCareer);
           setTasks(existing.tasks || []);
           setCareer(existing.targetCareer || '');
           setStreak(existing.streak || 0);
@@ -54,8 +55,13 @@ export default function LearningJourney() {
         let targetCareer = currentCareer || '';
         if (!targetCareer) {
           const rec = await getAIRecommendation(currentUser.uid);
-          targetCareer = rec?.careerTitle || 'Full-Stack Developer';
-          localStorage.setItem(careerKey, targetCareer);
+          targetCareer = rec?.careerTitle || getBestKnownCareer(currentUser.uid);
+          if (targetCareer) setLocalCareer(currentUser.uid, targetCareer);
+        }
+
+        if (!targetCareer) {
+          setNeedsPersonalization(true);
+          return;
         }
 
         setCareer(targetCareer);
@@ -137,7 +143,24 @@ export default function LearningJourney() {
       <div className="fixed inset-0 z-[1] pointer-events-none bg-[radial-gradient(circle_at_80%_20%,rgba(255,126,95,0.06)_0%,transparent_50%),radial-gradient(circle_at_20%_80%,rgba(254,180,123,0.05)_0%,transparent_50%)]" />
 
       <main className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
-        {loading || generating ? (
+        {needsPersonalization ? (
+          <Card className="mx-auto max-w-xl rounded-[2rem] border-white/70 bg-white/60 p-8 py-8 text-center shadow-[0_20px_60px_rgba(0,0,0,0.06)] backdrop-blur-2xl">
+            <CardContent className="flex flex-col items-center gap-4 p-0">
+              <div className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg">
+                <Target size={28} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-slate-900">Personalisasi dulu ya</h2>
+                <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-500">
+                  SkillPath belum menemukan target karir yang valid, jadi journey tidak akan dibuat pakai default sembarang.
+                </p>
+              </div>
+              <Button onClick={() => router.push('/')} className="rounded-2xl bg-slate-900 px-6 font-black text-white hover:bg-slate-800">
+                Mulai Personalisasi
+              </Button>
+            </CardContent>
+          </Card>
+        ) : loading || generating ? (
           <div className="flex flex-col lg:flex-row gap-8">
             <div className="w-full lg:w-[300px] flex flex-col gap-6 shrink-0">
               <Skeleton className="h-[250px] rounded-[2rem] bg-white/60" />

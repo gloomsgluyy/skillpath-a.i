@@ -68,6 +68,7 @@ export interface UserProfile {
   roleInterests: string[];
   jurusan?: string;
   minat?: string;
+  targetCareer?: string;
   createdAt: any;
   lastLoginAt: any;
   points: number;
