@@ -5,6 +5,9 @@ import { motion } from 'motion/react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Trophy, Star, Shield, Award, Zap, Download, FileText, CheckCircle2, Loader2, Briefcase, TrendingUp, Flame } from 'lucide-react';
@@ -104,15 +107,14 @@ export default function ProfileDashboard() {
 
               <div className="px-6 md:px-10 pb-8 flex flex-col items-center md:flex-row md:items-end gap-6 relative z-10">
                 {/* Avatar */}
-                <div className="w-24 h-24 rounded-[1.5rem] bg-white border-4 border-white p-0.5 shadow-lg shrink-0 -mt-12 md:-mt-16 mx-auto md:mx-0">
-                  {currentUser.photoURL ? (
-                    <img src={currentUser.photoURL} alt="" className="w-full h-full rounded-[1.2rem] object-cover" />
-                  ) : (
-                    <div className="w-full h-full rounded-[1.2rem] bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-4xl font-black text-white">
-                      {displayName.charAt(0).toUpperCase()}
-                    </div>
+                <Avatar className="w-24 h-24 rounded-[1.5rem] bg-white border-4 border-white p-0.5 shadow-lg shrink-0 -mt-12 md:-mt-16 mx-auto md:mx-0">
+                  {currentUser.photoURL && (
+                    <AvatarImage src={currentUser.photoURL} alt={displayName} className="rounded-[1.2rem]" />
                   )}
-                </div>
+                  <AvatarFallback className="rounded-[1.2rem] bg-gradient-to-br from-amber-400 to-orange-500 text-4xl font-black text-white">
+                    {displayName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
 
                 {/* Name & career */}
                 <div className="flex-1 text-center md:text-left pt-2 pb-1">
@@ -159,32 +161,33 @@ export default function ProfileDashboard() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="rounded-[2rem] bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.03)] p-7"
                   >
-                    <h3 className="font-extrabold text-slate-900 text-sm tracking-tight mb-5 flex items-center gap-2">
-                      <Zap size={16} className="text-amber-500" /> Skill Utama
-                    </h3>
-                    <div className="space-y-3">
-                      {rec.skills.map((skill: string, i: number) => {
-                        const pct = Math.min(95, 60 + i * 12 + completedTasks * 2);
-                        return (
-                          <div key={skill}>
-                            <div className="flex justify-between mb-1.5">
-                              <span className="text-[13px] font-black text-slate-700">{skill}</span>
-                              <span className="text-[13px] font-black text-slate-800">{pct}%</span>
-                            </div>
-                            <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${pct}%` }}
-                                transition={{ duration: 1, delay: 0.2 + i * 0.15 }}
-                                className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_0_8px_rgba(245,158,11,0.3)]"
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <Card className="rounded-[2rem] bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.03)] py-0">
+                      <CardHeader className="px-7 pt-7">
+                        <CardTitle className="font-extrabold text-slate-900 text-sm tracking-tight flex items-center gap-2">
+                          <Zap size={16} className="text-amber-500" /> Skill Utama
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="px-7 pb-7">
+                        <div className="flex flex-col gap-3">
+                          {rec.skills.map((skill: string, i: number) => {
+                            const pct = Math.min(95, 60 + i * 12 + completedTasks * 2);
+                            return (
+                              <div key={skill}>
+                                <div className="flex justify-between mb-1.5">
+                                  <span className="text-[13px] font-black text-slate-700">{skill}</span>
+                                  <span className="text-[13px] font-black text-slate-800">{pct}%</span>
+                                </div>
+                                <Progress
+                                  value={pct}
+                                  className="h-2.5 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-gradient-to-r [&_[data-slot=progress-indicator]]:from-amber-400 [&_[data-slot=progress-indicator]]:to-orange-500 [&_[data-slot=progress-indicator]]:shadow-[0_0_8px_rgba(245,158,11,0.3)]"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
                   </motion.div>
                 )}
 
@@ -197,17 +200,18 @@ export default function ProfileDashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-                className="rounded-[2.5rem] bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.03)] p-8 md:p-10"
               >
-                <div className="flex justify-between items-center mb-8">
-                  <h3 className="font-black text-slate-900 text-xl tracking-tight flex items-center gap-2">
-                    <Trophy size={20} className="text-amber-500" /> Pencapaian
-                  </h3>
-                  <Badge variant="outline" className="text-slate-500 border-slate-300 font-bold">
-                    {totalBadges}/5 Unlocked
-                  </Badge>
-                </div>
+                <Card className="rounded-[2.5rem] bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.03)] py-0">
+                  <CardHeader className="flex flex-row items-center justify-between px-8 pt-8 md:px-10 md:pt-10">
+                    <CardTitle className="font-black text-slate-900 text-xl tracking-tight flex items-center gap-2">
+                      <Trophy size={20} className="text-amber-500" /> Pencapaian
+                    </CardTitle>
+                    <Badge variant="outline" className="text-slate-500 border-slate-300 font-bold">
+                      {totalBadges}/5 Unlocked
+                    </Badge>
+                  </CardHeader>
 
+                  <CardContent className="px-8 pb-8 md:px-10 md:pb-10">
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
                   {[
                     { title: 'First Step', desc: 'Selesaikan 1 task', unlocked: completedTasks > 0, icon: <CheckCircle2 size={28} />, bgClass: 'bg-emerald-100', textClass: 'text-emerald-600' },
@@ -244,6 +248,8 @@ export default function ProfileDashboard() {
                     </div>
                   ))}
                 </div>
+                  </CardContent>
+                </Card>
               </motion.div>
             </div>
           </>

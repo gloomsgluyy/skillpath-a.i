@@ -5,6 +5,8 @@ import { motion } from 'motion/react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { PlayCircle, CheckCircle2, Flame, Trophy, Star, BookOpen, Loader2, Sparkles, Target } from 'lucide-react';
@@ -158,43 +160,43 @@ export default function LearningJourney() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-[2rem] bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.03)] p-7"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-extrabold text-slate-900 text-sm tracking-tight">Progress</h3>
-                  <Badge variant="outline" className="text-slate-600 border-slate-300 font-bold text-xs">
-                    {completedCount}/{tasks.length}
-                  </Badge>
-                </div>
+                <Card className="rounded-[2rem] bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_10px_40px_rgba(0,0,0,0.03)] py-0">
+                  <CardHeader className="flex flex-row items-center justify-between px-7 pt-7">
+                    <CardTitle className="font-extrabold text-slate-900 text-sm tracking-tight">Progress</CardTitle>
+                    <Badge variant="outline" className="text-slate-600 border-slate-300 font-bold text-xs">
+                      {completedCount}/{tasks.length}
+                    </Badge>
+                  </CardHeader>
 
-                {/* Progress Ring */}
-                <div className="relative w-36 h-36 mx-auto mb-6">
-                  <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none" stroke="rgba(0,0,0,0.04)" strokeWidth="3" />
-                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none" stroke="url(#progressGrad)" strokeWidth="3"
-                      strokeDasharray={`${progressPct}, 100`}
-                      strokeLinecap="round" />
-                    <defs>
-                      <linearGradient id="progressGrad"><stop offset="0%" stopColor="#f59e0b" /><stop offset="100%" stopColor="#ef4444" /></linearGradient>
-                    </defs>
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-black text-slate-900">{progressPct}%</span>
-                    <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-0.5">selesai</span>
-                  </div>
-                </div>
+                  <CardContent className="px-7">
+                    {/* Progress Ring */}
+                    <div className="relative w-36 h-36 mx-auto mb-6">
+                      <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none" stroke="rgba(0,0,0,0.04)" strokeWidth="3" />
+                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          fill="none" stroke="url(#progressGrad)" strokeWidth="3"
+                          strokeDasharray={`${progressPct}, 100`}
+                          strokeLinecap="round" />
+                        <defs>
+                          <linearGradient id="progressGrad"><stop offset="0%" stopColor="#f59e0b" /><stop offset="100%" stopColor="#ef4444" /></linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-3xl font-black text-slate-900">{progressPct}%</span>
+                        <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-0.5">selesai</span>
+                      </div>
+                    </div>
+                  </CardContent>
 
-                {/* Progress bar */}
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progressPct}%` }}
-                    transition={{ duration: 1 }}
-                    className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-[0_0_8px_rgba(245,158,11,0.3)]"
-                  />
-                </div>
+                  <CardFooter className="border-0 bg-transparent px-7 pb-7 pt-0">
+                    <Progress
+                      value={progressPct}
+                      className="h-2 bg-slate-100 [&_[data-slot=progress-indicator]]:bg-gradient-to-r [&_[data-slot=progress-indicator]]:from-amber-400 [&_[data-slot=progress-indicator]]:to-orange-500 [&_[data-slot=progress-indicator]]:shadow-[0_0_8px_rgba(245,158,11,0.3)]"
+                    />
+                  </CardFooter>
+                </Card>
               </motion.div>
 
               {/* Streak — Landing page's solid white card style */}
@@ -202,13 +204,16 @@ export default function LearningJourney() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="rounded-[2rem] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 p-7 text-center"
               >
-                <div className="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center mx-auto mb-3">
-                  <Flame size={28} className="text-orange-500" />
-                </div>
-                <div className="text-3xl font-black text-slate-900">{streak}</div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-1">Hari Streak</div>
+                <Card className="rounded-[2rem] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 py-0">
+                  <CardContent className="p-7 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center mx-auto mb-3">
+                      <Flame size={28} className="text-orange-500" />
+                    </div>
+                    <div className="text-3xl font-black text-slate-900">{streak}</div>
+                    <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-1">Hari Streak</div>
+                  </CardContent>
+                </Card>
               </motion.div>
 
               {/* Career — Landing page's statement card (dark) */}
@@ -216,18 +221,19 @@ export default function LearningJourney() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="rounded-[1.5rem] bg-slate-900 p-6 relative overflow-hidden"
               >
-                <div className="absolute inset-0 opacity-20 pointer-events-none">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/20 to-transparent" />
-                </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target size={14} className="text-amber-400" />
-                    <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Target Karir</span>
+                <Card className="rounded-[1.5rem] bg-slate-900 py-0 relative overflow-hidden border-slate-800">
+                  <div className="absolute inset-0 opacity-20 pointer-events-none">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/20 to-transparent" />
                   </div>
-                  <p className="text-lg font-black text-white leading-tight">{career}</p>
-                </div>
+                  <CardContent className="relative z-10 p-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target size={14} className="text-amber-400" />
+                      <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Target Karir</span>
+                    </div>
+                    <p className="text-lg font-black text-white leading-tight">{career}</p>
+                  </CardContent>
+                </Card>
               </motion.div>
             </div>
 
@@ -256,13 +262,16 @@ export default function LearningJourney() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: Math.min(i * 0.04, 0.5) }}
-                          className={cn(
-                            "flex flex-col p-4 rounded-[1.25rem] border transition-all duration-300 group",
-                            task.completed
-                              ? "bg-white border-emerald-200 shadow-sm"
-                              : "bg-white/50 backdrop-blur-2xl border-white/70 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5"
-                          )}
                         >
+                          <Card
+                            size="sm"
+                            className={cn(
+                              "group flex flex-col rounded-[1.25rem] border p-4 py-4 transition-all duration-300",
+                              task.completed
+                                ? "bg-white border-emerald-200 shadow-sm"
+                                : "bg-white/50 backdrop-blur-2xl border-white/70 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5"
+                            )}
+                          >
                           <div className="flex items-center gap-4 cursor-pointer" onClick={() => handleToggleTask(task.id)}>
                             <div className={cn(
                               "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300",
@@ -306,6 +315,7 @@ export default function LearningJourney() {
                               </div>
                             </div>
                           )}
+                          </Card>
                         </motion.div>
                       </TooltipTrigger>
                       <TooltipContent className="bg-white border-slate-200 text-slate-900 shadow-lg">

@@ -20,25 +20,32 @@ Users can explore different tech roles, receive AI-driven recommendations, and c
 ## Technology Stack
 
 ### Frontend
-*   **Framework**: Next.js 14 (App Router)
-*   **UI Library**: React
-*   **Styling**: Tailwind CSS
-*   **Components**: shadcn/ui
-*   **Animations**: Framer Motion
+*   **Framework**: Next.js 16.1.6 (App Router)
+*   **UI Library**: React 19.2.3
+*   **Language**: TypeScript 5
+*   **Styling**: Tailwind CSS 4 via `@tailwindcss/postcss`
+*   **Components**: shadcn/ui 4 (`radix-nova`, Radix base, Lucide icons)
+*   **Animations**: Motion / Framer Motion
 *   **Markdown Parsing**: react-markdown, remark-gfm
 
 ### Backend & AI
-*   **Database & Auth**: Firebase (Firestore, Firebase Authentication)
-*   **AI Inference**: Groq API (Llama3 Models)
+*   **Database & Auth**: Firebase 12 (Firestore, Firebase Authentication)
+*   **AI Inference**: Groq API and Groq SDK (Llama 3.x models)
 *   **API Routes**: Next.js Serverless Functions
+
+### Testing & Tooling
+*   **Unit/Component Tests**: Jest 30, Testing Library
+*   **E2E Tests**: Playwright
+*   **Linting**: ESLint 9 with Next.js config
+*   **Package Manager**: npm
 
 ## Getting Started
 
 ### Prerequisites
 
 Ensure you have the following installed on your local machine:
-*   Node.js (v18.0.0 or higher)
-*   npm or pnpm
+*   Node.js (v20 recommended for the current Next.js 16 / React 19 stack)
+*   npm
 
 ### Environment Setup
 

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Bot, Send, Sparkles, Map } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -343,12 +344,12 @@ export default function SkillPathsPage() {
 
       <div className="p-4 border-t border-slate-200/50 shrink-0 relative bg-white/80 backdrop-blur-lg">
         <div className="flex gap-2 relative z-10">
-          <input
+          <Input
             value={inputMsg}
             onChange={(e) => setInputMsg(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder="Tanya info atau link materi..."
-            className="flex-1 bg-white rounded-xl px-4 py-3 text-sm font-medium outline-none placeholder:text-slate-400 border border-slate-200 focus:border-amber-400 focus:ring-4 focus:ring-amber-500/10 transition-all shadow-sm text-slate-900"
+            className="h-12 flex-1 bg-white rounded-xl px-4 text-sm font-medium placeholder:text-slate-400 border border-slate-200 focus-visible:border-amber-400 focus-visible:ring-4 focus-visible:ring-amber-500/10 transition-all shadow-sm text-slate-900"
           />
           <Button onClick={handleSendMessage} disabled={chatLoading} className="bg-slate-900 hover:bg-slate-800 rounded-xl px-4 shadow-md text-white">
             <Send size={16} />

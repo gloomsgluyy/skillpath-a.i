@@ -5,7 +5,18 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
+import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Search, Brain, Code, Server, Palette, Sparkles, Network, Database, ShieldAlert, Cpu, ChartBar, LayoutTemplate, Briefcase, Gamepad2, Shield, Zap, Globe, Laptop, Heart, GraduationCap, ShoppingCart, Film, ChevronDown, Bot, ArrowUp } from 'lucide-react';
@@ -339,29 +350,32 @@ export default function ExploreCareers() {
             <div className="absolute inset-y-0 left-5 flex items-center text-amber-500/80 pointer-events-none drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]">
                <Search size={24} />
             </div>
-            <input
+            <Input
               type="text"
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setVisibleCount(ITEMS_PER_PAGE); }}
               placeholder="Cari profesi... (misal: UI/UX, Data Scientist, Blockchain)"
-              className="w-full h-16 bg-white/40 border border-white/50 rounded-2xl pl-14 pr-6 text-base md:text-lg font-medium text-slate-800 placeholder:text-slate-500 focus:outline-none focus:ring-4 focus:ring-amber-500/30 backdrop-blur-2xl shadow-xl transition-all"
+              className="h-16 rounded-2xl border-white/50 bg-white/40 pl-14 pr-6 text-base font-medium text-slate-800 shadow-xl backdrop-blur-2xl placeholder:text-slate-500 focus-visible:border-amber-400 focus-visible:ring-4 focus-visible:ring-amber-500/20 md:text-lg"
             />
           </div>
 
           <div className="flex overflow-x-auto hide-scrollbar w-full max-w-6xl gap-2 pb-4 px-2 snap-x justify-start">
             {CATEGORIES.map((cat) => (
-              <button
+              <Button
                 key={cat}
+                type="button"
+                variant={selectedCategory === cat ? "default" : "outline"}
+                size="sm"
                 onClick={() => { setSelectedCategory(cat); setVisibleCount(ITEMS_PER_PAGE); }}
                 className={cn(
-                  "shrink-0 snap-center px-5 py-2.5 rounded-full text-xs font-extrabold transition-all duration-300 border backdrop-blur-xl",
+                  "shrink-0 snap-center rounded-full px-5 text-xs font-extrabold transition-all duration-300 backdrop-blur-xl",
                   selectedCategory === cat
                     ? "bg-[#5D1636] text-white border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.5)] scale-105"
                     : "bg-white/20 text-slate-600 border-white/40 hover:bg-white/40 hover:text-slate-900"
                 )}
               >
                 {cat}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -371,12 +385,16 @@ export default function ExploreCareers() {
         </section>
 
         {/* Career Cards Grid */}
+        {visibleCareers.length > 0 ? (
+          <>
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12 mt-12">
           {visibleCareers.map((career, i) => {
-            const isMatched = aiResult && (
+            const scoredCareer = career as Career & { matchScore?: number };
+            const isMatched = Boolean(aiResult && (
               career.title.toLowerCase().includes(aiResult.careerTitle.toLowerCase()) ||
               aiResult.careerTitle.toLowerCase().includes(career.title.toLowerCase())
-            );
+            ));
+            const matchScore = isMatched && aiResult ? aiResult.matchScore : scoredCareer.matchScore || 0;
 
             return (
               <motion.div
@@ -387,9 +405,9 @@ export default function ExploreCareers() {
                 onClick={() => setSelectedCareer(career)}
                 className="cursor-pointer group h-full"
               >
-                <div
+                <Card
                   className={cn(
-                    "h-full flex flex-col p-6 rounded-3xl relative overflow-hidden transition-all duration-500 ease-out border shadow-lg bg-white/15 backdrop-blur-2xl",
+                    "h-full rounded-3xl relative overflow-hidden transition-all duration-500 ease-out border shadow-lg bg-white/15 backdrop-blur-2xl p-6 py-6",
                     isMatched
                       ? "border-amber-400 shadow-[0_8px_30px_rgba(251,191,36,0.3)] bg-gradient-to-b from-amber-50/40 to-white/10"
                       : "border-white/40 hover:border-amber-300 hover:shadow-[0_8px_30px_rgba(251,191,36,0.2)] hover:-translate-y-2 hover:scale-[1.02]"
@@ -402,16 +420,16 @@ export default function ExploreCareers() {
                       {getCareerIcon(career)}
                     </div>
 
-                    <div className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-black tracking-wide border transition-all",
+                    <Badge variant="outline" className={cn(
+                      "h-auto px-3 py-1.5 rounded-full text-xs font-black tracking-wide border transition-all",
                       isMatched
                         ? "bg-amber-100 text-[#5D1636] border-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.8)]"
-                        : (career as any).matchScore > 0
+                        : matchScore > 0
                           ? "bg-white/50 text-slate-700 border-white/60"
                           : "bg-white/30 text-slate-400 border-white/40"
                     )}>
-                       {isMatched ? `${aiResult.matchScore}%` : (career as any).matchScore > 0 ? `${(career as any).matchScore}%` : '—'} Match
-                    </div>
+                       {matchScore > 0 ? `${matchScore}%` : '-'} Match
+                    </Badge>
                   </div>
 
                   <div className="flex-1 z-10">
@@ -419,9 +437,9 @@ export default function ExploreCareers() {
                     <p className="text-slate-600 text-xs mb-3 line-clamp-2">{career.desc}</p>
                     <div className="flex flex-wrap gap-1.5 mb-4">
                       {career.skills.map(skill => (
-                        <span key={skill} className="px-2 py-0.5 bg-white/40 rounded-md text-[10px] font-bold text-slate-600 border border-white/60">
+                        <Badge key={skill} variant="secondary" className="h-auto px-2 py-0.5 bg-white/40 rounded-md text-[10px] font-bold text-slate-600 border border-white/60">
                           {skill}
-                        </span>
+                        </Badge>
                       ))}
                     </div>
                   </div>
@@ -431,9 +449,9 @@ export default function ExploreCareers() {
                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-300 to-orange-400 flex items-center justify-center text-white text-[8px] font-black shadow-sm">Rp</div>
                        <span className="text-xs font-bold text-slate-700">{career.salary}</span>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-500 bg-slate-100/50 px-2 py-0.5 rounded-md">{career.category}</span>
+                    <Badge variant="secondary" className="h-auto text-[10px] font-bold text-slate-500 bg-slate-100/50 px-2 py-0.5 rounded-md">{career.category}</Badge>
                   </div>
-                </div>
+                </Card>
               </motion.div>
             );
           })}
@@ -451,6 +469,32 @@ export default function ExploreCareers() {
               Muat {Math.min(ITEMS_PER_PAGE, filteredCareers.length - visibleCount)} Karir Lagi
             </Button>
           </div>
+        )}
+          </>
+        ) : (
+          <Empty className="mt-12 border border-white/50 bg-white/30 backdrop-blur-2xl">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Search />
+              </EmptyMedia>
+              <EmptyTitle>Tidak ada karir yang cocok</EmptyTitle>
+              <EmptyDescription>
+                Coba ganti kata kunci atau pilih kategori yang lebih luas.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedCategory("Semua");
+                  setVisibleCount(ITEMS_PER_PAGE);
+                }}
+              >
+                Reset Filter
+              </Button>
+            </EmptyContent>
+          </Empty>
         )}
       </main>
 
