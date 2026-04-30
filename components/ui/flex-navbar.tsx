@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence, Easing } from 'motion/react';
 import { Laptop, Moon, Sun } from 'lucide-react';
+import { SkillPathLogo } from '@/components/brand/SkillPathLogo';
 import { ThemeSwitch } from '@/components/ui/theme-switch';
 import { cn } from '@/lib/utils';
 
@@ -43,36 +44,23 @@ interface FlexNavbarProps {
 }
 
 const FlexNavbar: React.FC<FlexNavbarProps> = ({
-  logo = (
-    <svg
-      xmlns='http://www.w3.org/2000/svg'
-      viewBox='0 0 24 24'
-      className={cn(
-        'shrink-0 w-6 h-6 sm:w-6 sm:h-6 md:w-7 md:h-7 text-black dark:text-white',
-      )}
-    >
-      <path
-        fill='currentColor'
-        d='M5.999 17a3 3 0 0 1-1.873-.658a2.98 2.98 0 0 1-1.107-2.011a2.98 2.98 0 0 1 .639-2.206l4-5c.978-1.225 2.883-1.471 4.143-.523l1.674 1.254l2.184-2.729a3 3 0 1 1 4.682 3.747l-4 5c-.977 1.226-2.882 1.471-4.143.526l-1.674-1.256l-2.184 2.729A2.98 2.98 0 0 1 5.999 17M10 8a1 1 0 0 0-.781.374l-4 5.001a1 1 0 0 0-.213.734c.03.266.161.504.369.67a.996.996 0 0 0 1.406-.155l3.395-4.244L13.4 12.8c.42.316 1.056.231 1.381-.176l4-5.001a1 1 0 0 0 .213-.734a1 1 0 0 0-.369-.67a.996.996 0 0 0-1.406.156l-3.395 4.242L10.6 8.2A1 1 0 0 0 10 8m9 13H5a1 1 0 1 1 0-2h14a1 1 0 1 1 0 2'
-      />
-    </svg>
-  ),
-  brandName = 'STARTUP',
-  tagline = 'The helpful software company',
-  launchText = 'Launching 2026',
+  logo = <SkillPathLogo showWordmark={false} markClassName='size-7' />,
+  brandName = 'SkillPath AI',
+  tagline = 'Career paths built around your profile',
+  launchText = 'Personalized roadmap platform',
   navLinks = [
-    { label: 'Technology', href: '#technology' },
-    { label: 'Company', href: '#company' },
-    { label: 'Careers', href: '#careers' },
-    { label: 'Journal', href: '#journal' },
-    { label: 'Beta', href: '#beta' },
+    { label: 'Explore Careers', href: '/explore' },
+    { label: 'Skill Paths', href: '/paths' },
+    { label: 'Learning Journey', href: '/journey' },
+    { label: 'Projects', href: '/projects' },
+    { label: 'Profile', href: '/profile' },
   ],
   media = {
-    type: 'video',
-    src: 'https://www.pexels.com/download/video/3254009/',
-    alt: 'Our story',
+    type: 'image',
+    src: '/icon.svg',
+    alt: 'SkillPath learning path mark',
   },
-  mediaButtonText = 'Our story',
+  mediaButtonText = 'SkillPath',
   onMediaClick,
   collapsedWidth = '90vw',
   collapsedMaxWidth = '20rem',
