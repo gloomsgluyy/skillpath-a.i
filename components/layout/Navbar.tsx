@@ -1,12 +1,10 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { Compass, Brain, LayoutList, BookOpen, FolderKanban, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { getAIRecommendation } from '@/lib/firestore';
+import { SkillPathLogo } from '@/components/brand/SkillPathLogo';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 
 const NAV_LINKS = [
@@ -18,15 +16,6 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const { currentUser, logout } = useAuth();
-  const [targetCareer, setTargetCareer] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (currentUser?.uid) {
-      getAIRecommendation(currentUser.uid)
-        .then(rec => setTargetCareer(rec?.careerTitle || null))
-        .catch(() => { });
-    }
-  }, [currentUser]);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
@@ -45,15 +34,7 @@ export function Navbar() {
       >
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <div className="bg-transparent p-1 rounded-xl">
-            <svg viewBox="0 0 28 28" className="w-7 h-7" fill="none">
-              <path d="M14 3L6 22h3l5-12 5 12h3L14 3z" fill="#E8963A" />
-              <path d="M9 22l5-12 5 12" fill="none" stroke="#2D3748" strokeWidth="1.5" />
-            </svg>
-          </div>
-          <span className="font-display font-extrabold text-lg text-slate-800 tracking-tight">
-            SkillPath
-          </span>
+          <SkillPathLogo />
         </Link>
 
         {/* Navigation Links - ONLY SHOW IF LOGGED IN */}
