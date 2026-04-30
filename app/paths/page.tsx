@@ -5,23 +5,76 @@ import { motion } from 'motion/react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Bot, Send, Sparkles, Map } from 'lucide-react';
+import { Bot, Send, Map } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
-import { getSkillPath, saveSkillPath, updateSkillPathNode, getAIRecommendation, type SkillPathNode } from '@/lib/firestore';
+import { getSkillPath, saveSkillPath, getAIRecommendation, type SkillPathNode } from '@/lib/firestore';
 import { CAREERS } from '@/lib/careers-database';
 import { getBestKnownCareer, getLocalCareer, setLocalCareer } from '@/lib/personalization';
 import confetti from 'canvas-confetti';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { SkillPathLogo } from '@/components/brand/SkillPathLogo';
 import { RoadmapCanvas } from '@/components/roadmap/RoadmapCanvas';
 import type { NeuralNodeData } from '@/components/roadmap/NeuralNode';
 
 interface ChatMessage {
   role: 'user' | 'ai';
   content: string;
+}
+
+type RawSkillPathNode = Partial<Omit<SkillPathNode, 'coordinates' | 'status'>> & {
+  label?: string;
+  status?: SkillPathNode['status'];
+  coordinates?: { x?: number; y?: number };
+};
+
+type SavedSkillPath = {
+  targetCareer: string;
+  nodes?: RawSkillPathNode[];
+};
+
+type GeneratePathResponse = {
+  answer?: unknown;
+  error?: string;
+  newCareer?: string;
+  shouldRegenerate?: boolean;
+  nodes?: RawSkillPathNode[];
+};
+
+function normalizeSkillPathNode(node: RawSkillPathNode, index: number): SkillPathNode {
+  const safeX = typeof node.coordinates?.x === 'number' && Number.isFinite(node.coordinates.x)
+    ? node.coordinates.x
+    : typeof node.x === 'number' && Number.isFinite(node.x)
+      ? node.x
+      : 300 + (index % 3) * 180;
+  const safeY = typeof node.coordinates?.y === 'number' && Number.isFinite(node.coordinates.y)
+    ? node.coordinates.y
+    : typeof node.y === 'number' && Number.isFinite(node.y)
+      ? node.y
+      : 100 + index * 140;
+
+  return {
+    id: node.id || `node-${index}`,
+    title: node.title || node.label || `Step ${index + 1}`,
+    description: node.description || '',
+    estimatedHours: node.estimatedHours || 10,
+    duration: node.duration || '2 Minggu',
+    difficulty: node.difficulty || 'Menengah',
+    icon_type: node.icon_type || 'code',
+    prerequisites: node.prerequisites || [],
+    status: node.status || (index === 0 ? 'active' : 'locked'),
+    coordinates: { x: safeX, y: safeY },
+    connections: node.connections || [],
+    learning_resources: node.learning_resources,
+    x: safeX,
+    y: safeY,
+  };
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 export default function SkillPathsPage() {
@@ -44,6 +97,12 @@ export default function SkillPathsPage() {
   const loadedCareerRef = React.useRef<string | null>(null);
 
   useEffect(() => {
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      setIsMobileChatOpen(false);
+    }
+  }, []);
+
+  useEffect(() => {
     const rawCareerParam = searchParams.get('career');
     const careerParam = rawCareerParam
       ? CAREERS.find(c => c.id === rawCareerParam)?.title || rawCareerParam
@@ -60,22 +119,14 @@ export default function SkillPathsPage() {
         const careerFromUrl = careerParam || '';
         const careerFromStorage = getLocalCareer(currentUser.uid);
 
-        const existingPath = await getSkillPath(currentUser.uid);
+        const existingPath = await getSkillPath(currentUser.uid) as SavedSkillPath | null;
+        const existingNodes = existingPath?.nodes ?? [];
 
         const intendedCareer = careerFromUrl || careerFromStorage;
         const needsRegenForNewCareer = intendedCareer && existingPath?.targetCareer && intendedCareer !== existingPath.targetCareer;
 
-        if (existingPath && existingPath.nodes?.length > 0 && !needsRegenForNewCareer) {
-          const sanitizedNodes = (existingPath.nodes || []).map((n: any, i: number) => {
-            const safeX = typeof n.coordinates?.x === 'number' && !isNaN(n.coordinates.x) ? n.coordinates.x : typeof n.x === 'number' && !isNaN(n.x) ? n.x : 300 + (i % 3) * 180;
-            const safeY = typeof n.coordinates?.y === 'number' && !isNaN(n.coordinates.y) ? n.coordinates.y : typeof n.y === 'number' && !isNaN(n.y) ? n.y : 100 + i * 140;
-            return {
-              ...n,
-              coordinates: { x: safeX, y: safeY },
-              x: safeX,
-              y: safeY,
-            };
-          });
+        if (existingPath && existingNodes.length > 0 && !needsRegenForNewCareer) {
+          const sanitizedNodes = existingNodes.map(normalizeSkillPathNode);
 
           setLocalCareer(currentUser.uid, existingPath.targetCareer);
           setCareer(existingPath.targetCareer);
@@ -116,37 +167,18 @@ export default function SkillPathsPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ career: targetCareer })
           });
-          const data = await res.json();
+          const data = await res.json() as GeneratePathResponse;
 
           if (data.nodes && Array.isArray(data.nodes) && data.nodes.length > 0) {
-            const pathNodes: SkillPathNode[] = data.nodes.map((n: any, i: number) => {
-              const safeX = typeof n.coordinates?.x === 'number' && !isNaN(n.coordinates.x) ? n.coordinates.x : typeof n.x === 'number' && !isNaN(n.x) ? n.x : 300 + (i % 3) * 180;
-              const safeY = typeof n.coordinates?.y === 'number' && !isNaN(n.coordinates.y) ? n.coordinates.y : typeof n.y === 'number' && !isNaN(n.y) ? n.y : 100 + i * 140;
-
-              return {
-                id: n.id || `node-${i}`,
-                title: n.title || n.label || `Step ${i + 1}`,
-                description: n.description || '',
-                estimatedHours: n.estimatedHours || 10,
-                duration: n.duration || '2 Minggu',
-                difficulty: n.difficulty || 'Menengah',
-                icon_type: n.icon_type || 'code',
-                prerequisites: n.prerequisites || [],
-                status: n.status || (i === 0 ? 'active' : 'locked'),
-                coordinates: { x: safeX, y: safeY },
-                connections: n.connections || [],
-                x: safeX,
-                y: safeY,
-              };
-            });
+            const pathNodes = data.nodes.map(normalizeSkillPathNode);
             setNodes(pathNodes);
             setMessages(prev => [...prev, { role: 'ai', content: `Roadmap **${targetCareer}** sudah jadi! Ada ${pathNodes.length} tahapan yang perlu kamu kuasai. Mulai dari yang paling atas ya!` }]);
             saveSkillPath(currentUser.uid, targetCareer, pathNodes).catch(e => console.error("Path save background error", e));
           } else {
              throw new Error(data.error || "Materi roadmap tidak ditemukan.");
           }
-        } catch (err: any) {
-          setMessages(prev => [...prev, { role: 'ai', content: `Gagal membuat roadmap: ${err.message || 'Coba lagi beberapa saat lagi.'}` }]);
+        } catch (err: unknown) {
+          setMessages(prev => [...prev, { role: 'ai', content: `Gagal membuat roadmap: ${getErrorMessage(err, 'Coba lagi beberapa saat lagi.')}` }]);
         } finally {
           setGenerating(false);
         }
@@ -155,7 +187,6 @@ export default function SkillPathsPage() {
       }
     }
     load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser, searchParams]);
 
   const handleNodeClick = async (node: NeuralNodeData) => {
@@ -206,7 +237,7 @@ export default function SkillPathsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ career, question: userMsg, history: messages })
       });
-      const data = await res.json();
+      const data = await res.json() as GeneratePathResponse;
 
       if (data.answer) {
         const answerText = typeof data.answer === 'string' ? data.answer : JSON.stringify(data.answer);
@@ -226,29 +257,10 @@ export default function SkillPathsPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ career: newCareer })
           });
-          const regenData = await regenRes.json();
+          const regenData = await regenRes.json() as GeneratePathResponse;
 
           if (regenData.nodes && Array.isArray(regenData.nodes) && regenData.nodes.length > 0) {
-            const pathNodes: SkillPathNode[] = regenData.nodes.map((n: any, i: number) => {
-              const safeX = typeof n.coordinates?.x === 'number' && !isNaN(n.coordinates.x) ? n.coordinates.x : typeof n.x === 'number' && !isNaN(n.x) ? n.x : 300 + (i % 3) * 180;
-              const safeY = typeof n.coordinates?.y === 'number' && !isNaN(n.coordinates.y) ? n.coordinates.y : typeof n.y === 'number' && !isNaN(n.y) ? n.y : 100 + i * 140;
-
-              return {
-                id: n.id || `node-${i}`,
-                title: n.title || n.label || `Step ${i + 1}`,
-                description: n.description || '',
-                estimatedHours: n.estimatedHours || 10,
-                duration: n.duration || '2 Minggu',
-                difficulty: n.difficulty || 'Menengah',
-                icon_type: n.icon_type || 'code',
-                prerequisites: n.prerequisites || [],
-                status: n.status || (i === 0 ? 'active' : 'locked'),
-                coordinates: { x: safeX, y: safeY },
-                connections: n.connections || [],
-                x: safeX,
-                y: safeY,
-              };
-            });
+            const pathNodes = regenData.nodes.map(normalizeSkillPathNode);
             setNodes(pathNodes);
             setMessages(prev => [...prev, { role: 'ai', content: `Roadmap **${newCareer}** sudah jadi! Ada ${pathNodes.length} tahapan. Mulai dari yang paling atas!` }]);
             if (currentUser?.uid) {
@@ -257,8 +269,8 @@ export default function SkillPathsPage() {
           } else {
              throw new Error(regenData.error || "Materi roadmap tidak ditemukan.");
           }
-        } catch (err: any) {
-          setMessages(prev => [...prev, { role: 'ai', content: `Gagal membuat roadmap baru: ${err.message || 'Coba lagi beberapa saat lagi.'}` }]);
+        } catch (err: unknown) {
+          setMessages(prev => [...prev, { role: 'ai', content: `Gagal membuat roadmap baru: ${getErrorMessage(err, 'Coba lagi beberapa saat lagi.')}` }]);
         } finally {
            setGenerating(false);
         }
@@ -422,36 +434,42 @@ export default function SkillPathsPage() {
         </div>
 
         {/* Mobile Floating Chat Popup */}
-        <div className={cn(
-            "lg:hidden absolute bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-2xl rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-slate-200 overflow-hidden flex flex-col min-h-0 transition-transform duration-300",
-            isMobileChatOpen ? "h-[75dvh] translate-y-0" : "h-[75dvh] translate-y-full"
-        )}>
-          <div className="p-4 border-b border-slate-200/50 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">
-                <Bot size={20} className="text-white" />
+        {isMobileChatOpen && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="lg:hidden absolute bottom-0 left-0 right-0 z-40 h-[75dvh] bg-white/95 backdrop-blur-2xl rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-slate-200 overflow-hidden flex flex-col min-h-0"
+          >
+            <div className="p-4 border-b border-slate-200/50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">
+                  <Bot size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 tracking-tight">AI Consultant</h3>
+                  <span className="text-[10px] text-emerald-600 flex items-center gap-1 font-bold">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Online
+                  </span>
+                </div>
               </div>
-              <div>
-                <h3 className="font-extrabold text-sm text-slate-900 tracking-tight">AI Consultant</h3>
-                <span className="text-[10px] text-emerald-600 flex items-center gap-1 font-bold">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Online
-                </span>
-              </div>
+              <button onClick={() => setIsMobileChatOpen(false)} className="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors">
+                 Tutup
+              </button>
             </div>
-            <button onClick={() => setIsMobileChatOpen(false)} className="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors">
-               Tutup
-            </button>
-          </div>
-          {renderChatContent(true)}
-        </div>
+            {renderChatContent(true)}
+          </motion.div>
+        )}
 
         {/* Mobile Toggle Button (when chat is closed) */}
         {!isMobileChatOpen && (
           <Button 
             onClick={() => setIsMobileChatOpen(true)}
+            aria-label="Buka AI Consultant"
             className="lg:hidden fixed bottom-6 left-6 z-40 w-14 h-14 rounded-full shadow-[0_10px_30px_rgba(245,158,11,0.4)] bg-amber-500 hover:bg-amber-600 text-white p-0 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
           >
-            <Sparkles size={28} />
+            <SkillPathLogo showWordmark={false} markClassName="size-9 drop-shadow-none" />
           </Button>
         )}
       </div>
